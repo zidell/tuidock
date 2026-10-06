@@ -55,7 +55,7 @@
   - 그대로 둠: `Cmd+M`, `` Cmd+` ``, `Cmd+Shift+3~6`, `Cmd+Shift+Q`, 연결 안 된 프로그램의 `Cmd+C`·`Cmd+V`.
   - 연결된 프로그램엔 나머지 Cmd 조합을 `key cmd+…`로 넘기고, 연결 안 된 프로그램이면 버린다(Cmd+T 새 탭 등이 돌면 단독 앱이 아니다).
 - **일부러 끝낼 때**(Dock 종료·Cmd+Q·`bye`)는 남는 빈 창을 닫고, 스스로·오류로 끝나면 메시지가 보이게 창을 둔다.
-- **윈도우는 대상이 아니다**(작업 표시줄이 창 단위라 바로가기로 충분). `tuidock.go`는 윈도우에서도 빌드된다(`Open`이 nil).
+- **윈도우**: 지금은 없다(`tuidock.go`는 빌드되고 `Open`이 nil). Windows판(자체 터미널 기본 + 콘솔 창, Qt + Gifiles 터미널 위젯) 계획은 `PLAN.md` — Windows에서 이어서 구현한다.
 
 ### 외부 터미널(`--terminal terminal|iterm2|ghostty`)
 
