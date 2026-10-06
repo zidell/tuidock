@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TUIDock — 터미널 프로그램을 Dock 앱으로 · Turn terminal programs into Dock apps</title>
+<meta name="description" content="터미널 TUI 프로그램을 macOS Dock 앱으로 감싼다 · Wrap terminal TUI programs as macOS Dock apps">
+<link rel="canonical" href="https://zidell.github.io/tuidock/">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TUIDock">
+<meta property="og:url" content="https://zidell.github.io/tuidock/">
+<meta property="og:title" content="TUIDock — Turn terminal programs into Dock apps">
+<meta property="og:description" content="Wrap terminal TUI programs as macOS Dock apps: their own Dock icon, Cmd+Tab entry and window.">
+<meta property="og:image" content="https://zidell.github.io/tuidock/window-en.png">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "TUIDock",
+  "description": "Wrap terminal TUI programs as macOS Dock apps.",
+  "url": "https://zidell.github.io/tuidock/",
+  "downloadUrl": "https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg",
+  "installUrl": "https://zidell.github.io/tuidock/install.sh",
+  "image": "https://zidell.github.io/tuidock/icon.png",
+  "screenshot": "https://zidell.github.io/tuidock/window.png",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS 14+",
+  "inLanguage": ["ko", "en"],
+  "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "codeRepository": "https://github.com/zidell/tuidock",
+  "author": { "@type": "Person", "name": "zidell", "url": "https://github.com/zidell" }
+}
+</script>
+<style>
+pre { background: #eee; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.dock { display: inline-flex; gap: 6px; padding: 6px 8px; border-radius: 18px; background: rgba(228, 228, 231, 0.8); border: 1px solid rgba(0, 0, 0, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6); }
+</style>
+</head>
+<body style="max-width: 700px; margin: 0 auto">
+
+<p>
+<a href="#download"><span data-l="ko">다운로드</span><span data-l="en" hidden>Download</span></a> |
+<a href="https://github.com/zidell/tuidock">GitHub</a> |
+<a href="#" id="lang">English</a>
+</p>
+
+<h1><img src="icon.png" alt="" width="32" height="32" align="absmiddle"> TUIDock</h1>
+
+<p>
+<b><span data-l="ko">터미널 프로그램을 Dock 앱으로</span><span data-l="en" hidden>Turn terminal programs into Dock apps</span></b>
+</p>
+
+<p>
+<span data-l="ko">TUI 프로그램(htop, lazygit, 직접 만든 도구 …)을 끌어다 놓고 이모지를 고르면 <code>.app</code>이 나온다. Dock 아이콘·Cmd+Tab 항목이 따로 생기고, 창은 고른 실행기(터미널·아이텀·고스티)에 뜬다.</span>
+<span data-l="en" hidden>Drop a TUI program (htop, lazygit, your own tool …), pick an emoji, and you get a <code>.app</code>. It gets its own Dock icon and Cmd+Tab entry, while the window stays in the terminal you pick (Terminal, iTerm2, Ghostty).</span>
+</p>
+
+<p style="text-align: center; margin-bottom: 0"><img data-l="ko" src="window.png" alt="TUIDock 창" width="470" height="251"><img data-l="en" hidden src="window-en.png" alt="TUIDock window" width="470" height="251"></p>
+
+<p style="text-align: center; margin-top: 10px"><span class="dock"><img src="icons/2.png" alt="" width="56" height="56"><img src="icons/3.png" alt="" width="56" height="56"><img src="icons/4.png" alt="" width="56" height="56"><img src="icons/5.png" alt="" width="56" height="56"><img src="icons/6.png" alt="" width="56" height="56"><img src="icons/7.png" alt="" width="56" height="56"></span></p>
+
+<h2 id="download"><span data-l="ko">다운로드</span><span data-l="en" hidden>Download</span></h2>
+
+<p>
+<b><a href="https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg">TUIDock.dmg</a></b>
+— <span data-l="ko">열어서 TUIDock을 Applications로 끌어다 놓는다.</span><span data-l="en" hidden>Open it and drag TUIDock to Applications.</span>
+</p>
+
+<p><span data-l="ko">또는 터미널에서(<code>tuidock</code> 명령까지 설치, 같은 명령으로 업데이트):</span><span data-l="en" hidden>Or from the terminal (also installs the <code>tuidock</code> command; run again to update):</span></p>
+
+<pre>curl -fsSL https://zidell.github.io/tuidock/install.sh | bash</pre>
+
+<p><span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 터미널·아이텀·고스티</span><span data-l="en" hidden>macOS 14+ · Apple Silicon &amp; Intel · Terminal, iTerm2, Ghostty</span></p>
+
+<hr>
+
+<h2><span data-l="ko">개발 동기</span><span data-l="en" hidden>Motivation</span></h2>
+
+<p>
+<span data-l="ko">매일 쓰는 터미널 도구가 Terminal 탭 사이에 섞여 있으면 찾기 어렵고, Cmd+Tab으로 바로 갈 수도 없다. 무엇보다 Terminal 탭은 앱이 아니라서 <a href="https://folivora.ai/">BetterTouchTool</a>(BTT) 같은 도구로 단축키를 붙일 수 없었다. 단독 앱이 되면 “이 단축키로 캘린더 열기·앞으로 가져오기”를 다른 앱처럼 지정할 수 있다. 이게 가장 큰 이유다.</span>
+<span data-l="en" hidden>Terminal tools you use every day get lost among Terminal tabs, and Cmd+Tab can't take you straight to them. Above all, a Terminal tab isn't an app, so tools like <a href="https://folivora.ai/">BetterTouchTool</a> (BTT) can't bind a shortcut to it. As a standalone app it can have its own “open / bring to front” shortcut like any other app — that was the main reason.</span>
+</p>
+
+<p>
+<span data-l="ko">터미널 캘린더(<a href="https://zidell.github.io/calendar-tui/">calendar-tui</a>)를 만들면서 이걸 Dock에서 여는 실행기를 붙였는데, 도구마다 만들 게 아니라 아무 프로그램이나 감싸는 생성기로 떼어 낸 것이 TUIDock이다.</span>
+<span data-l="en" hidden>While building a terminal calendar (<a href="https://zidell.github.io/calendar-tui/">calendar-tui</a>) I wrote a launcher to open it from the Dock — TUIDock is that launcher turned into a generator for any program.</span>
+</p>
+
+<p>
+<span data-l="ko">터미널 에뮬레이터를 품은 앱은 도구 하나에 100MB가 넘는다. TUIDock은 창을 Terminal에 맡기고 Dock 아이콘과 단축키만 얹어서, 도구당 약 23MB(Terminal 창 9MB + 실행기 14MB)다.</span>
+<span data-l="en" hidden>An app that embeds a terminal emulator costs over 100MB per tool. TUIDock leaves the window to Terminal and only adds the Dock icon and shortcuts — about 23MB per tool (9MB Terminal window + 14MB launcher).</span>
+</p>
+
+<h2><span data-l="ko">작동 방식</span><span data-l="en" hidden>How it works</span></h2>
+
+<p>
+<span data-l="ko">만든 앱은 작은 실행기다. 열면 고른 터미널에 새 창을 띄워 프로그램을 실행하고, 프로그램이 끝날 때까지 같이 떠 있으면서 그 창을 단독 앱처럼 다룬다. 프로그램이 끝나면 앱도 끝난다.</span>
+<span data-l="en" hidden>A made app is a small launcher. It opens a new window in the terminal you picked, running your program, stays alive alongside it, and treats that window like a standalone app. When the program exits, so does the app.</span>
+</p>
+
+<ul>
+<li><span data-l="ko">Dock 아이콘·실행 중 점·Cmd+Tab 항목. Dock을 누르거나 Cmd+Tab으로 고르면 그 창이 앞으로 온다.</span><span data-l="en" hidden>A Dock icon, running dot and Cmd+Tab entry. Clicking it or picking it with Cmd+Tab brings its window forward.</span></li>
+<li><span data-l="ko"><code>Cmd+W</code>는 창을 가리고, <code>Cmd+Q</code>는 그 앱만 끝낸다(Terminal은 그대로). <code>Cmd+T</code>(새 탭) 같은 Terminal 단축키는 그 창에서 막힌다. 복사·붙여넣기는 된다.</span><span data-l="en" hidden><code>Cmd+W</code> hides the window, <code>Cmd+Q</code> quits just that app (Terminal stays). Terminal shortcuts like <code>Cmd+T</code> (new tab) are blocked in that window; copy and paste still work.</span></li>
+<li><span data-l="ko">창 크기와 글꼴 크기를 기억했다가 다음에 같은 크기로 연다.</span><span data-l="en" hidden>Remembers the window and font size for next time.</span></li>
+<li><span data-l="ko">아이콘은 이모지 하나, 또는 이미지.</span><span data-l="en" hidden>The icon is a single emoji, or an image.</span></li>
+<li><span data-l="ko">프로그램이 <a href="https://github.com/zidell/tuidock#프로그램-쪽-연결">프로토콜</a>을 따르면 Cmd 조합(<code>Cmd+F</code> …)을 Terminal 대신 프로그램이 받는다. Go 패키지가 있다.</span><span data-l="en" hidden>If your program speaks the <a href="https://github.com/zidell/tuidock/blob/main/README.en.md#connecting-your-program">protocol</a>, it receives Cmd shortcuts (<code>Cmd+F</code> …) instead of Terminal. There's a Go package.</span></li>
+<li><span data-l="ko">실행기는 터미널·아이텀·고스티 중에서 고른다. 아이텀은 창 하나만 가릴 수 없어 <code>Cmd+W</code>가 최소화다. 고스티는 창 하나만 가릴 방법이 없어 앱마다 고스티를 따로 띄운다(앱당 메모리 70~100MB 더).</span><span data-l="en" hidden>Pick Terminal, iTerm2 or Ghostty. iTerm2 can't hide a single window, so <code>Cmd+W</code> minimizes it. Ghostty can't either, so each app runs its own Ghostty (about 70-100MB more memory per app).</span></li>
+<li><span data-l="ko">메뉴 막대는 실행기 것이 그대로 보인다.</span><span data-l="en" hidden>The menu bar is still the terminal's.</span></li>
+</ul>
+
+<h2><span data-l="ko">CLI 실행법</span><span data-l="en" hidden>Command line</span></h2>
+
+<pre>tuidock &lt;<span data-l="ko">실행 파일</span><span data-l="en" hidden>program</span>&gt; [<span data-l="ko">이모지</span><span data-l="en" hidden>emoji</span>] [<span data-l="ko">옵션</span><span data-l="en" hidden>options</span>]</pre>
+
+<table border="1" cellpadding="4" cellspacing="0" width="100%">
+<tr><td><code><span data-l="ko">실행 파일</span><span data-l="en" hidden>program</span></code></td><td><span data-l="ko">경로나 PATH의 명령 이름(<code>htop</code>). 셸 alias는 안 된다</span><span data-l="en" hidden>A path or a command name on PATH (<code>htop</code>). Shell aliases don't work</span></td></tr>
+<tr><td><code><span data-l="ko">이모지</span><span data-l="en" hidden>emoji</span></code></td><td><span data-l="ko">아이콘. 없으면 아무거나 고르고, 같은 이름 앱이 있으면 그 아이콘을 그대로 쓴다</span><span data-l="en" hidden>The icon. Without one, a random emoji — or the existing app's icon if one with that name exists</span></td></tr>
+<tr><td><code>--name</code></td><td><span data-l="ko">앱 이름(기본: 파일 이름 첫 글자만 대문자로, <code>htop</code> → <code>Htop</code>)</span><span data-l="en" hidden>App name (default: the file name capitalized, <code>htop</code> → <code>Htop</code>)</span></td></tr>
+<tr><td><code>--icon</code></td><td><span data-l="ko">이모지 대신 이미지 아이콘(PNG·JPG·ICNS)</span><span data-l="en" hidden>An image icon instead of an emoji (PNG, JPG, ICNS)</span></td></tr>
+<tr><td><code>--arg</code></td><td><span data-l="ko">실행 인자(여러 번)</span><span data-l="en" hidden>Program argument (repeatable)</span></td></tr>
+<tr><td><code>--terminal</code></td><td><span data-l="ko">실행기: <code>builtin</code>(자체 터미널, 기본)·<code>terminal</code>·<code>iterm2</code>·<code>ghostty</code>. 주지 않으면 같은 이름 앱의 것을 그대로</span><span data-l="en" hidden>Terminal to run in: <code>builtin</code> (built-in, default), <code>terminal</code>, <code>iterm2</code>, <code>ghostty</code>. Without it, an existing app's choice is kept</span></td></tr>
+<tr><td><code>--no-dock</code></td><td><span data-l="ko">Dock에 고정하지 않는다</span><span data-l="en" hidden>Don't pin to the Dock</span></td></tr>
+<tr><td><code>--help</code></td><td><span data-l="ko">도움말(<code>make</code>·<code>install</code> 등 전체 옵션)</span><span data-l="en" hidden>Help (all options, including <code>make</code> and <code>install</code>)</span></td></tr>
+</table>
+
+<p><span data-l="ko">예:</span><span data-l="en" hidden>Examples:</span></p>
+
+<pre>tuidock htop 😁                  <span data-l="ko"># PATH의 명령 이름</span><span data-l="en" hidden># a command on PATH</span>
+tuidock ~/Sites/foo/bin/foo 🦊   <span data-l="ko"># 경로</span><span data-l="en" hidden># a path</span>
+tuidock foo                      <span data-l="ko"># 이모지를 빼면 아무거나</span><span data-l="en" hidden># no emoji: a random one</span></pre>
+
+<p>
+<span data-l="ko">앱을 <code>/Applications</code>에 넣고 Dock에 고정한다. 실행 파일은 복사하지 않고 그 경로를 실행하므로, 프로그램을 다시 빌드해도 앱은 그대로다. 같은 이름으로 다시 만들면 덮어써서 빌드 스크립트에 넣어 두기 좋다.</span>
+<span data-l="en" hidden>It installs the app in <code>/Applications</code> and pins it to the Dock. The executable isn't copied — the app runs it from its path — so rebuilding your program needs no new app. Making it again with the same name overwrites it, so it fits in a build script.</span>
+</p>
+
+<h2><span data-l="ko">권한 설정</span><span data-l="en" hidden>Permissions</span></h2>
+
+<ul>
+<li><span data-l="ko">실행기로 터미널·아이텀을 고른 앱은 처음 열 때 “Terminal(아이텀이면 iTerm)을 제어하려고 합니다” 창이 뜬다(기본인 자체 터미널과 고스티는 묻지 않는다). <b>허용</b>을 누른다. 창을 띄우고 앞으로 가져오는 데만 쓴다. 다른 권한(손쉬운 사용 등)은 필요 없다.</span><span data-l="en" hidden>With Terminal or iTerm2 as the terminal, a made app asks to control Terminal (or iTerm) the first time you open it (the default built-in terminal and Ghostty don't ask). Click <b>Allow</b> — it's only used to open the window and bring it forward. No other permission (Accessibility etc.) is needed.</span></li>
+<li><span data-l="ko">거절했거나 창이 안 뜨면: 시스템 설정 → 개인정보 보호 및 보안 → 자동화 → 그 앱 아래 <b>Terminal</b>을 켠다.</span><span data-l="en" hidden>If you declined or nothing opens: System Settings → Privacy &amp; Security → Automation → turn on <b>Terminal</b> under that app.</span></li>
+<li><span data-l="ko">같은 이름으로 앱을 다시 만들 때 아이콘·실행 파일 경로가 바뀌면 권한을 한 번 더 묻는다. 그대로면 묻지 않는다.</span><span data-l="en" hidden>Remaking an app with the same name asks again only if its icon or program path changed.</span></li>
+</ul>
+
+<hr>
+
+<address>TUIDock · GPLv3 · <a href="https://github.com/zidell/tuidock">github.com/zidell/tuidock</a></address>
+
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById('lang');
+  function set(l) {
+    root.lang = l;
+    btn.textContent = l === 'ko' ? 'English' : '한국어';
+    var els = document.querySelectorAll('[data-l]');
+    for (var i = 0; i < els.length; i++) els[i].hidden = els[i].getAttribute('data-l') !== l;
+    try { localStorage.setItem('lang', l); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('lang'); } catch (e) {}
+  set(saved || ((navigator.language || '').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en'));
+  btn.addEventListener('click', function (e) { e.preventDefault(); set(root.lang === 'ko' ? 'en' : 'ko'); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+#!/bin/bash
+# tuidock — 터미널 TUI 프로그램을 Dock 앱(.app)으로 감싼다. 창은 Terminal에 뜨고(또는 자체 터미널 창), 앱은 그 창을 단독 앱처럼 다룬다.
+# 손으로 만들 땐 GUI(TUIDock.app)나 바로 만들기(tuidock <실행 파일> [이모지])를 쓰고, make·install은 빌드 스크립트용이다.
+# GUI도 이 명령을 부른다. 사용법·메시지는 공개 CLI라 영어(usage). 실행기·아이콘 도구는 이 파일 옆에 빌드해 둔 것
+# (launcher/launcher, icon/icon — GUI 앱 안)이 있으면 그걸 쓰고, 없으면 소스를 빌드한다(launcher/build.sh, Xcode 커맨드라인 도구 필요).
+set -euo pipefail
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)" # ~/.local/bin 링크로 불려도 원본 옆 실행기를 쓴다
+
+die() { printf 'tuidock: %s\n' "$*" >&2; exit 1; }
+usage() {
+  cat <<'USAGE'
+tuidock — wrap a terminal TUI program as a macOS Dock app (.app).
+The window opens in Terminal; the app treats it like a standalone app.
+
+Usage:
+  tuidock <program> [emoji] [options]   Make an app, put it in /Applications (or ~/Applications) and pin it to the Dock
+  tuidock make [options]                Only build the app bundle (for build scripts)
+  tuidock install <App.app>             Copy to /Applications and pin to the Dock (--no-dock: don't pin)
+  tuidock --help                        This help
+
+Quick make:
+  program               A path or a command name on PATH (htop). The app runs it in place (not copied).
+                        Shell aliases don't work
+  emoji                 The icon. Without one, a random emoji — or the existing app's icon if an app
+                        with that name exists (its --terminal is kept the same way)
+  --name NAME           App name (default: the file name capitalized, htop -> Htop). An app with the same
+                        name is overwritten
+  --icon IMAGE          Image icon instead of an emoji (PNG, JPG, ICNS)
+  --arg ARG             Program argument (repeatable)
+  --terminal NAME       Terminal to run in: builtin (default, its own window), terminal, iterm2, ghostty
+                        ghostty runs a separate Ghostty per app (about 70-100MB more memory each)
+                        builtin: the app's own window and terminal (no Terminal/iTerm2 running; box-drawing
+                        lines stay joined at any line height)
+  --font NAME           builtin only: font (PostScript name, e.g. Menlo-Regular). Default: D2Coding, put inside
+                        the app (SIL Open Font License, its text goes along)
+  --font-size PT        builtin only: font size (default 13; Cmd +/- changes and remembers it)
+  --line-height X       builtin only: line height as a multiple of the font's (1 to 3, default 1.3)
+  --id BUNDLE_ID        Default local.tuidock.<name>
+  --no-dock             Don't pin to the Dock
+
+make options:
+  --name NAME           App name (required)
+  --embed FILE          Put the executable inside the bundle (Contents/Resources)
+  --command PATH        Executable outside the bundle, used first if present (swap it while developing
+                        without re-signing the app). One of --embed and --command is required
+  --arg ARG             Program argument (repeatable)
+  --emoji EMOJI         Emoji icon (no backdrop). Without --emoji or --icon: the name's first letter
+  --color '#RRGGBB'     Background of the first-letter icon (default #2B2B2E)
+  --icon IMAGE          Image icon: PNG, JPG, ICNS. Non-square images get transparent padding
+  --terminal NAME       builtin (default), terminal, iterm2, ghostty
+  --font NAME, --font-size PT, --line-height X   builtin only (see above)
+  --id BUNDLE_ID        Default local.tuidock.<name>
+  --version VERSION     Default 1.0
+  --resource FILE       Extra file for Contents/Resources (repeatable)
+  --out DIR             Default: current directory
+  --universal           Build the launcher for Apple Silicon + Intel (the embedded program must be universal itself)
+USAGE
+}
+
+slug() { printf '%s' "$1" | LC_ALL=C tr -c 'A-Za-z0-9' '-' | tr 'A-Z' 'a-z' | sed 's/--*/-/g; s/^-//; s/-$//'; }
+
+make_app() {
+  local name="" embed="" command="" icon="" emoji="" color="" id="" version="1.0" out="." universal=0 terminal=builtin
+  local font="" fontsize="" lineheight=""
+  local args=() resources=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name) name="$2"; shift ;;
+      --embed) embed="$2"; shift ;;
+      --command) command="$2"; shift ;;
+      --arg) args+=("$2"); shift ;;
+      --icon) icon="$2"; shift ;;
+      --emoji) emoji="$2"; shift ;;
+      --color) color="$2"; shift ;;
+      --id) id="$2"; shift ;;
+      --version) version="$2"; shift ;;
+      --resource) resources+=("$2"); shift ;;
+      --out) out="$2"; shift ;;
+      --universal) universal=1 ;;
+      --terminal) terminal="$2"; shift ;;
+      --font) font="$2"; shift ;;
+      --font-size) fontsize="$2"; shift ;;
+      --line-height) lineheight="$2"; shift ;;
+      *) die "unknown option: $1 (tuidock --help)" ;;
+    esac
+    shift
+  done
+  [ -n "$name" ] || die "--name is required"
+  case "$terminal" in
+    terminal|iterm2|ghostty|builtin) ;;
+    *) die "unknown terminal: $terminal (terminal, iterm2, ghostty, builtin)" ;;
+  esac
+  [ -z "$fontsize" ] || [[ "$fontsize" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "--font-size is a number: $fontsize"
+  [ -z "$lineheight" ] || [[ "$lineheight" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "--line-height is a number: $lineheight"
+  [ -n "$embed$command" ] || die "--embed or --command is required"
+  [ -z "$embed" ] || [ -x "$embed" ] || die "not an executable: $embed"
+  [ -n "$id" ] || id="local.tuidock.$(slug "$name")"
+  [ "$id" != "local.tuidock." ] || id="local.tuidock.app$(printf '%s' "$name" | cksum | cut -d' ' -f1)"
+
+  local app="$out/$name.app" tmp
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' RETURN
+  rm -rf "$app"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+
+  # 실행기(빌드해 둔 것이 없으면 소스에서. 모듈 캐시의 파일은 실행 비트가 없어 bash로 부른다)
+  if [ -x "$HERE/launcher/launcher" ]; then
+    cp "$HERE/launcher/launcher" "$app/Contents/MacOS/launcher"
+  elif [ "$universal" = 1 ]; then
+    bash "$HERE/launcher/build.sh" "$app/Contents/MacOS/launcher" --universal
+  else
+    bash "$HERE/launcher/build.sh" "$app/Contents/MacOS/launcher"
+  fi
+
+  # 자체 터미널의 기본 글꼴 D2Coding(SIL OFL 1.1, 라이선스 파일과 함께). 글꼴을 따로 고르면 넣지 않는다
+  if [ "$terminal" = builtin ] && [ -z "$font" ] && [ -d "$HERE/launcher/fonts" ]; then
+    mkdir -p "$app/Contents/Resources/fonts"
+    cp "$HERE/launcher/fonts/"* "$app/Contents/Resources/fonts/"
+  fi
+
+  # 설치된 앱만으로 설정을 찾게 하는 안내(github.com/zidell/agent-discoverable-config). 자체 터미널만 설정 파일이 있다
+  if [ "$terminal" = builtin ]; then
+    cat > "$app/Contents/Resources/readme.txt" <<README
+$name — user guide (tuidock app)
+
+This app is a terminal TUI program wrapped as a macOS Dock app by tuidock
+(https://github.com/zidell/tuidock). It runs the program in its own built-in terminal window.
+Program: ${command:-Contents/Resources/$(basename "${embed:-program}")}
+
+Settings
+- The active settings file (TOML with comments; it may not exist until first created):
+    ~/Library/Application Support/$id/config.toml
+  Print the exact path:  "/Applications/$name.app/Contents/MacOS/launcher" --config-path
+  (use the app's real location if it isn't in /Applications)
+- Every key is explained right above it in the file (meaning, type, default, range).
+  Print the defaults with explanations:  launcher --print-default-config
+- No file yet: create it with  launcher --init-config  (never overwrites), or change anything in the app's Cmd+, settings window.
+  Missing keys use the defaults; there is no template elsewhere in the app to edit.
+- Saving the file applies it to the running app immediately (no restart). The Cmd+, settings window
+  edits the same file (only the changed key's line), and its "Open File…" opens it in the default text editor. Cmd +/- in the app rewrite font_size in the file.
+- Check it:  launcher --check-config  (prints problems and exits 1; an invalid value is ignored and
+  its default used).
+- There are no secrets (API keys, tokens) in this app's settings.
+- Window size and position are remembered separately by macOS defaults ($id).
+
+Fonts: the default font D2Coding is bundled under Resources/fonts (SIL Open Font License 1.1, OFL.txt).
+README
+  fi
+
+  local embedName=""
+  if [ -n "$embed" ]; then
+    embedName=$(basename "$embed")
+    cp "$embed" "$app/Contents/Resources/$embedName"
+    chmod +x "$app/Contents/Resources/$embedName"
+  fi
+  local r
+  for r in ${resources[@]+"${resources[@]}"}; do cp "$r" "$app/Contents/Resources/"; done
+
+  # 아이콘
+  if [[ "$icon" == *.icns ]]; then
+    cp "$icon" "$app/Contents/Resources/AppIcon.icns"
+  else
+    local png="$tmp/icon.png"
+    if [ -n "$icon" ]; then
+      [ -f "$icon" ] || die "icon file not found: $icon"
+      sips -s format png "$icon" --out "$png" >/dev/null
+      local w h m
+      w=$(sips -g pixelWidth "$png" | awk '/pixelWidth/ {print $2}')
+      h=$(sips -g pixelHeight "$png" | awk '/pixelHeight/ {print $2}')
+      m=$(( w > h ? w : h ))
+      [ "$w" = "$h" ] || sips -p "$m" "$m" "$png" >/dev/null # 늘이지 않고 투명 여백으로 정사각형
+    else
+      local tool="$HERE/icon/icon"
+      if [ ! -x "$tool" ]; then
+        tool="$tmp/icon-tool"
+        swiftc -O -o "$tool" "$HERE/icon/IconRender.swift" "$HERE/icon/main.swift"
+      fi
+      "$tool" "$png" "${emoji:-$name}" "${color:-#2B2B2E}"
+    fi
+    mkdir "$tmp/AppIcon.iconset"
+    local s
+    for s in 16 32 128 256 512; do
+      sips -z $s $s "$png" --out "$tmp/AppIcon.iconset/icon_${s}x${s}.png" >/dev/null
+      sips -z $((s * 2)) $((s * 2)) "$png" --out "$tmp/AppIcon.iconset/icon_${s}x${s}@2x.png" >/dev/null
+    done
+    iconutil -c icns "$tmp/AppIcon.iconset" -o "$app/Contents/Resources/AppIcon.icns"
+  fi
+
+  local plist="$app/Contents/Info.plist"
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0"><dict/></plist>\n' > "$plist"
+  put() { plutil -insert "$1" -string "$2" "$plist"; }
+  put CFBundleName "$name"
+  put CFBundleDisplayName "$name"
+  put CFBundleIdentifier "$id"
+  put CFBundleExecutable launcher
+  put CFBundleIconFile AppIcon
+  put CFBundlePackageType APPL
+  put CFBundleShortVersionString "${version#v}"
+  put CFBundleVersion 1
+  put LSMinimumSystemVersion 14.0
+  put NSAppleEventsUsageDescription "$name 창을 터미널에 띄우고 앞으로 가져오려고 터미널을 제어합니다. / Opens $name in a terminal window and brings it to the front."
+  put TUIDockTerminal "$terminal"
+  if [ "$terminal" = builtin ]; then
+    # 자체 터미널은 프로그램이 이 앱의 자식이라 macOS가 이 앱을 권한 주체로 본다(Terminal 방식에선 Terminal이 주체라 Terminal의
+    # 권한을 썼다). 사용 설명이 없으면 묻지도 않고 거부하므로, 터미널 프로그램이 흔히 쓰는 개인정보 권한의 설명을 넣어 둔다.
+    # 물음 창은 프로그램이 실제로 그 권한을 요청할 때만 뜬다.
+    local why="$name 프로그램이 요청한 접근입니다. / Requested by the $name program."
+    local k
+    for k in NSCalendarsUsageDescription NSCalendarsFullAccessUsageDescription NSCalendarsWriteOnlyAccessUsageDescription \
+      NSRemindersUsageDescription NSRemindersFullAccessUsageDescription NSContactsUsageDescription \
+      NSPhotoLibraryUsageDescription NSCameraUsageDescription NSMicrophoneUsageDescription \
+      NSLocationUsageDescription NSLocationWhenInUseUsageDescription NSSpeechRecognitionUsageDescription; do
+      put "$k" "$why"
+    done
+  fi
+  [ -z "$font" ] || put TUIDockFont "$font"
+  [ -z "$fontsize" ] || put TUIDockFontSize "$fontsize"
+  [ -z "$lineheight" ] || put TUIDockLineHeight "$lineheight"
+  [ -z "$command" ] || put TUIDockCommand "$command"
+  [ -z "$embedName" ] || put TUIDockEmbedded "$embedName"
+  if [ ${#args[@]} -gt 0 ]; then
+    plutil -insert TUIDockArguments -array "$plist"
+    local i=0 a
+    for a in "${args[@]}"; do plutil -insert "TUIDockArguments.$i" -string "$a" "$plist"; i=$((i + 1)); done
+  fi
+
+  # 내려받은 TUIDock(DMG)에서 복사한 실행기엔 격리 표시가 따라올 수 있다. 여기서 만든 앱은 ad-hoc 서명이라 표시가 있으면 막힌다
+  xattr -dr com.apple.quarantine "$app" 2>/dev/null || true
+  codesign --force --deep -s - "$app" 2>/dev/null
+  echo "made: $app"
+}
+
+install_app() {
+  local src="" dock=1
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --no-dock) dock=0 ;;
+      *) src="$1" ;;
+    esac
+    shift
+  done
+  [ -d "$src" ] || die "app not found: $src"
+  local dir="${APP_DIR:-/Applications}" name
+  name=$(basename "$src")
+  if [ -w "$dir" ]; then
+    rm -rf "${dir:?}/$name" && cp -R "$src" "$dir/"
+  else
+    echo "writing to $dir needs an administrator password"
+    sudo rm -rf "${dir:?}/$name" && sudo cp -R "$src" "$dir/"
+  fi
+  echo "installed: $dir/$name"
+  # Dock에 고정(이미 있으면 그대로). 실행기는 프로그램이 끝나면 같이 끝나서 고정하지 않으면 Dock에 남지 않는다
+  local url
+  url="file://$(printf '%s' "$dir/$name/" | sed 's/ /%20/g')"
+  if [ "$dock" = 1 ] && ! defaults read com.apple.dock persistent-apps 2>/dev/null | grep -qF "$url"; then
+    defaults write com.apple.dock persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>$url</string><key>_CFURLStringType</key><integer>15</integer></dict></dict></dict>"
+    killall Dock 2>/dev/null || true
+    echo "pinned to the Dock"
+  fi
+}
+
+EMOJIS=(😀 😁 😎 🤖 👾 🐙 🦊 🐼 🐳 🦄 🐝 🌵 🍀 🌈 🔥 ⚡️ 🌙 ⭐️ 🍎 🍋 🍉 🍕 🍩 ☕️ 🎲 🎯 🎸 🚀 🛸 🧭 🧪 🔮 💎 📦 📚 📝 📅 📊 🔧 🧰 💡 🔔)
+
+# quick은 바로 만들기: 실행 파일을 찾아 임시 폴더에 만들고 GUI처럼 /Applications(쓸 수 없으면 ~/Applications)에 설치한다.
+quick() {
+  local bin="" emoji="" name="" term="" font="" fontsize="" lineheight="" opts=() inst=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --no-dock) inst+=(--no-dock) ;;
+      --name) name="$2"; shift ;;
+      --terminal) term="$2"; opts+=("$1" "$2"); shift ;;
+      --font) font="$2"; shift ;;
+      --font-size) fontsize="$2"; shift ;;
+      --line-height) lineheight="$2"; shift ;;
+      --color|--icon|--arg|--id) opts+=("$1" "$2"); shift ;;
+      -*) die "unknown option: $1 (tuidock --help)" ;;
+      *) if [ -z "$bin" ]; then bin="$1"; elif [ -z "$emoji" ]; then emoji="$1"; else die "too many arguments: $1"; fi ;;
+    esac
+    shift
+  done
+  # 경로가 아니면 PATH에서 찾는다. 셸 alias·함수는 이 스크립트에서 보이지 않는다
+  local path="$bin"
+  if [[ "$bin" != */* ]]; then
+    path=$(type -P "$bin") || die "command not found on PATH: $bin (shell aliases don't work; give a file path)"
+  fi
+  [ -f "$path" ] && [ -x "$path" ] || die "not an executable: $bin"
+  path="$(cd "$(dirname "$path")" && pwd)/$(basename "$path")" # 링크는 풀지 않는다(brew 업그레이드 뒤에도 같은 경로)
+  local base
+  base=$(basename "$path" | tr '/' '-')
+  [ -n "$name" ] || name="$(printf '%s' "${base:0:1}" | tr 'a-z' 'A-Z')${base:1}"
+  local dir="${APP_DIR:-/Applications}" tmp
+  [ -w "$dir" ] || { dir="$HOME/Applications"; mkdir -p "$dir"; }
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' RETURN
+  # 같은 이름 앱은 덮어쓴다. 이모지·아이콘을 안 줬으면 있던 아이콘을 그대로 써서 다시 만들 때마다 바뀌지 않게 한다
+  local old="$dir/$name.app/Contents/Resources/AppIcon.icns"
+  if [ -z "$emoji" ] && ! printf '%s\n' ${opts[@]+"${opts[@]}"} | grep -qx -- --icon; then
+    if [ -f "$old" ]; then
+      cp "$old" "$tmp/AppIcon.icns"
+      opts+=(--icon "$tmp/AppIcon.icns")
+    else
+      emoji="${EMOJIS[RANDOM % ${#EMOJIS[@]}]}"
+    fi
+  fi
+  [ -z "$emoji" ] || opts+=(--emoji "$emoji")
+  # 터미널도 안 줬으면 있던 앱의 것을 그대로(빌드 스크립트가 다시 만들어도 고른 터미널이 풀리지 않게)
+  local oldplist="$dir/$name.app/Contents/Info.plist"
+  # oldkey는 있던 앱의 Info.plist 값. 키가 없으면 빈 값(plutil은 실패해도 오류 문구를 표준 출력에 내므로 종료 코드로 거른다)
+  oldkey() { local v; v=$(plutil -extract "$1" raw -o - "$oldplist" 2>/dev/null) && printf '%s' "$v"; true; }
+  if [ -z "$term" ] && [ -f "$oldplist" ]; then
+    term=$(oldkey TUIDockTerminal)
+    [ -n "$term" ] || term=terminal # 이 키가 없던 때 만든 앱은 Terminal 방식이었다
+    [ -z "$term" ] || opts+=(--terminal "$term")
+  fi
+  # 글꼴·줄간격도 같다
+  if [ -f "$oldplist" ]; then
+    [ -n "$font" ] || font=$(oldkey TUIDockFont)
+    [ -n "$fontsize" ] || fontsize=$(oldkey TUIDockFontSize)
+    [ -n "$lineheight" ] || lineheight=$(oldkey TUIDockLineHeight)
+  fi
+  [ -z "$font" ] || opts+=(--font "$font")
+  [ -z "$fontsize" ] || opts+=(--font-size "$fontsize")
+  [ -z "$lineheight" ] || opts+=(--line-height "$lineheight")
+  mkdir "$tmp/out"
+  make_app --name "$name" --command "$path" ${opts[@]+"${opts[@]}"} --out "$tmp/out" >/dev/null
+  APP_DIR="$dir" install_app "$tmp/out/$name.app" ${inst[@]+"${inst[@]}"}
+  [ -z "$emoji" ] || echo "icon: $emoji"
+  case "$term" in
+    iterm2) [ -d /Applications/iTerm.app ] || [ -d "$HOME/Applications/iTerm.app" ] || echo "note: iTerm2 is not installed" ;;
+    ghostty)
+      [ -d /Applications/Ghostty.app ] || [ -d "$HOME/Applications/Ghostty.app" ] || echo "note: Ghostty is not installed"
+      echo "note: with Ghostty each app runs its own Ghostty (about 70-100MB more memory per app)" ;;
+  esac
+}
+
+case "${1:-}" in
+  make) shift; make_app "$@" ;;
+  install) shift; install_app "$@" ;;
+  ""|-h|--help|help) usage ;;
+  *) quick "$@" ;;
+esac
