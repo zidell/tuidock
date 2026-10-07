@@ -43,11 +43,15 @@ int main(int argc, char **argv) {
     }
     if (mode == QStringLiteral("probe")) output("\x1b]10;?\x1b\\\x1b]11;?\x1b\\\x1b[?2031h\x1b[?996n\x1b[?1000h\x1b[?1006h\r\nREADY\r\n");
     else output("\x1b[?1049h\x1b[2J\x1b[HREADY\r\n");
-    char buf[1024]; DWORD n = 0; QByteArray history;
+    wchar_t buf[512]; DWORD n = 0; QByteArray history; QString pending;
     for (;;) {
-        if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buf, sizeof buf, &n, nullptr) || n == 0) return 0;
-        const QByteArray input(buf, int(n));
-        // 콘솔 입력은 같은 쓰기도 여러 ReadFile로 나뉜다. 실제 바이트 스트림을 누적해 검사한다.
+        // Go와 같이 Unicode 콘솔 API로 읽는다. ANSI ReadFile은 구형 호스트에서 한글을 키 문자로 바꾼다.
+        if (!ReadConsoleW(GetStdHandle(STD_INPUT_HANDLE), buf, DWORD(std::size(buf)), &n, nullptr) || n == 0) return 0;
+        pending += QString::fromWCharArray(buf, int(n));
+        const int tail = !pending.isEmpty() && pending.at(pending.size()-1).isHighSurrogate() ? 1 : 0;
+        const QByteArray input = pending.left(pending.size()-tail).toUtf8();
+        pending = pending.right(tail);
+        // 같은 쓰기도 여러 읽기로 나뉜다. 실제 입력 스트림을 누적해 검사한다.
         history += input; history = history.right(1024);
         output("HEX:" + history.toHex() + "\r\n");
         if (input.contains('q')) return 0;
