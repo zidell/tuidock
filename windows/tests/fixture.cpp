@@ -43,11 +43,13 @@ int main(int argc, char **argv) {
     }
     if (mode == QStringLiteral("probe")) output("\x1b]10;?\x1b\\\x1b]11;?\x1b\\\x1b[?2031h\x1b[?996n\x1b[?1000h\x1b[?1006h\r\nREADY\r\n");
     else output("\x1b[?1049h\x1b[2J\x1b[HREADY\r\n");
-    char buf[1024]; DWORD n = 0;
+    char buf[1024]; DWORD n = 0; QByteArray history;
     for (;;) {
         if (!ReadFile(GetStdHandle(STD_INPUT_HANDLE), buf, sizeof buf, &n, nullptr) || n == 0) return 0;
         const QByteArray input(buf, int(n));
-        output("HEX:" + input.toHex() + "\r\n");
+        // 콘솔 입력은 같은 쓰기도 여러 ReadFile로 나뉜다. 실제 바이트 스트림을 누적해 검사한다.
+        history += input; history = history.right(1024);
+        output("HEX:" + history.toHex() + "\r\n");
         if (input.contains('q')) return 0;
     }
 }

@@ -126,10 +126,10 @@ private slots:
         QTest::keyClick(&term, Qt::Key_C, Qt::ControlModifier);
         QTRY_VERIFY(term.screenText().contains(QStringLiteral("HEX:03")));
         QTest::keyClick(&term, Qt::Key_V, Qt::ControlModifier);
-        QTRY_VERIFY(term.screenText().contains(QStringLiteral("HEX:16")));
+        QTRY_VERIFY(term.screenText().contains(QStringLiteral("HEX:0316")));
         QInputMethodEvent commit; commit.setCommitString(QStringLiteral("가나다"));
         QApplication::sendEvent(&term, &commit);
-        QTRY_VERIFY(term.screenText().contains(QString::fromLatin1(QStringLiteral("가나다").toUtf8().toHex())));
+        QTRY_VERIFY2(term.screenText().contains(QString::fromLatin1(QStringLiteral("가나다").toUtf8().toHex())), qPrintable(term.screenText()));
         QGuiApplication::clipboard()->setText(QStringLiteral("PASTE"));
         QTest::keyClick(&term, Qt::Key_V, Qt::ControlModifier | Qt::ShiftModifier);
         QTRY_VERIFY(term.screenText().contains(QStringLiteral("5041535445")));
