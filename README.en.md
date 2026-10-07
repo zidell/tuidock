@@ -2,9 +2,11 @@
 
 [한국어](README.md)
 
-Wraps a terminal TUI program as a macOS Dock app — like Fluid did for web pages: drop a binary, pick an emoji icon, get a `.app`.
+Supports Windows and macOS. See [Windows](#windows) below for Windows usage; the Dock and Cmd descriptions that follow apply to macOS.
 
-The window lives in the terminal you pick (Terminal, iTerm2, Ghostty or the built-in terminal); the app makes that window behave like a standalone app:
+Run terminal TUI programs like separate desktop apps: Dock apps on macOS, or Start and taskbar apps on Windows. Open the generator only to create an app or change its icon; launch generated apps separately when needed.
+
+On macOS, the window lives in the terminal you pick (Terminal, iTerm2, Ghostty or the built-in terminal); the app makes that window behave like a standalone app. Windows uses the built-in terminal:
 
 - Its own Dock icon, running dot and Cmd+Tab entry. Clicking the Dock icon or picking it with Cmd+Tab brings the window to the front. When the program exits, the app quits too.
 - Window size (in character cells) and font size are remembered and reused next time. The first time, the window nearly fills the screen.
@@ -16,6 +18,54 @@ Per tool it costs a Terminal window (~9-14MB) plus the launcher (~14MB), on top 
 With the [built-in terminal](#built-in-terminal) the app draws its own window and no terminal app runs. Table and border lines stay joined at any line height.
 
 ## Install
+
+### Windows
+
+Extract `TUIDock-windows-x64.zip` and run `tuidock.exe`. Accepting the first-run installation prompt installs the launcher and its runtimes in `%LOCALAPPDATA%\Programs\TUIDock`. The Windows build is unsigned; SmartScreen may require More info → Run anyway.
+
+Install/update from PowerShell (no administrator needed; also adds the CLI to your user PATH):
+
+```powershell
+irm https://zidell.github.io/tuidock/install.ps1 | iex
+```
+
+Close running generated apps before updating. After installation, new terminals can also use `tuidock --help`. The script does not launch the app or register login Startup.
+
+The horizontal layout matches macOS. Click the icon on the left to choose an emoji, drop an executable onto the right panel or click to select it, then click **Create**. Choosing another emoji replaces the current one. Right-click the icon for an image or background color. Changing the icon after creation updates the app after 0.8 seconds, including its running window. Windows emoji and TUIDock icons use the canvas without outer padding.
+
+A shortcut appears in the **TUIDock** folder in Start. With **Run after creating** enabled, the app opens and appears on the taskbar. Right-click its shortcut to pin it permanently. Nothing is added to the login Startup folder. Opening the same app again brings its existing window forward.
+
+Windows uses the built-in terminal. Console window mode was excluded after the real window identification test failed. Running Microsoft Edit used about 64 MB per app on this PC.
+
+```powershell
+.\tuidock.exe install
+.\tuidock.exe make --command edit.exe --name Edit --emoji 📝
+.\tuidock.exe run --command edit.exe --arg README.md
+.\tuidock.exe remove Edit
+```
+
+Definitions, icons, settings and window state are stored in `%APPDATA%\tuidock\<id>`. `config.toml` controls font, size, line height, theme and contrast; changes apply on save. After `--app <id>`, use `--config-path`, `--print-default-config`, `--init-config` or `--check-config`. `Ctrl+,` opens settings; `Ctrl+=/-/0` adjusts font size; `Ctrl+Shift+C/V` copies and pastes. `Ctrl+C` also copies selected screen text. Other Ctrl combinations reach the program. A normal exit closes the window; an error leaves a message until any key is pressed. There is no scrollback, tab or split. The Go connection also supports Windows.
+
+To build from source:
+
+Requires Windows 10 1809 or newer (ConPTY), Visual Studio 2022 C++ build tools, CMake, Qt 6.10.1 MSVC x64 and Go 1.21 or newer. In PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -QtRoot C:/Qt/6.10.1/msvc2022_64 -Package
+.\dist\TUIDock-windows-x64\tuidock.exe run --command edit.exe
+```
+
+Set `-QtRoot` to your actual Qt installation. After building and running automated tests, the script creates `dist/TUIDock-windows-x64.zip` with the Qt and MSVC runtimes, D2Coding fonts and licenses. Windows CI runs the same build and tests and uploads the ZIP artifact.
+
+`--command` accepts an executable path or a name on PATH; repeat `--arg` for arguments. No separate shell is launched.
+
+```powershell
+.\dist\TUIDock-windows-x64\tuidock.exe run --command edit.exe --arg README.md
+```
+
+File selection, Create, app launch and Start shortcuts were checked through the real Windows 11 GUI. Microsoft Korean IME composition, mouse selection/wheel, mixed-DPI monitors and Windows 10 still need desktop verification.
+
+### macOS
 
 Open [TUIDock.dmg](https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg) and drag TUIDock to Applications. Or from the terminal (also installs the `tuidock` command; run again to update):
 
@@ -145,4 +195,4 @@ Run directly from a terminal, `Open` returns nil and the nil methods do nothing.
 
 ## License
 
-GPLv3 (`LICENSE`). Only the Go binding `tuidock.go` is MIT (`LICENSE.MIT`), so programs under any license can import it. The launcher runs the program as a separate process, so wrapping a program with tuidock doesn't affect that program's license.
+GPLv3 (`LICENSE`). The Go binding (`tuidock.go`, `tuidock_unix.go`, `tuidock_windows.go` and binding tests) is MIT (`LICENSE.MIT`), so programs under any license can import it. The launcher runs the program as a separate process, so wrapping a program with tuidock doesn't affect that program's license.

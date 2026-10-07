@@ -2,3 +2,4 @@ dist/
 launcher/launcher
 icon/icon
 .DS_Store
+build-win*/

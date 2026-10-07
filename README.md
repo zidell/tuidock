@@ -2,9 +2,11 @@
 
 [English](README.en.md)
 
-터미널 TUI 프로그램을 macOS Dock 앱으로 감싼다. 웹 주소를 앱으로 만들던 Fluid처럼, 바이너리를 끌어다 놓고 이모지 아이콘을 고르면 `.app`이 나온다.
+Windows와 macOS를 지원한다. Windows 사용법은 아래 [Windows](#windows)에 있고, 이후 Dock·Cmd 키 설명은 macOS 기준이다.
 
-창은 고른 실행기(터미널 · 아이텀(iTerm2) · 고스티(Ghostty) · 자체 터미널)에 뜨고, 앱은 그 창을 단독 앱처럼 다룬다.
+터미널 TUI 프로그램을 독립 앱처럼 실행한다. macOS는 Dock 앱, Windows는 시작 메뉴·작업표시줄 앱으로 만든다. 생성기는 제작·아이콘 변경 때만 켜면 되고, 만든 앱은 필요할 때 따로 연다.
+
+macOS에서 창은 고른 실행기(터미널 · 아이텀(iTerm2) · 고스티(Ghostty) · 자체 터미널)에 뜨고, 앱은 그 창을 단독 앱처럼 다룬다. Windows는 자체 터미널을 사용한다.
 
 - Dock 아이콘·실행 중 점·Cmd+Tab 항목이 따로 생긴다. Dock을 누르거나 Cmd+Tab으로 고르면 그 창이 앞으로 온다. 프로그램이 끝나면 앱도 끝난다.
 - 창 크기(글자 칸)와 글꼴 크기를 기억했다가 다음에 같은 크기로 연다. 처음엔 화면을 거의 채운다.
@@ -16,6 +18,54 @@
 [자체 터미널](#자체-터미널)을 고르면 터미널 앱을 띄우지 않고 앱이 직접 창을 그린다. 줄간격을 벌려도 표·테두리 선이 끊기지 않는다.
 
 ## 설치
+
+### Windows
+
+Windows x64용 `TUIDock-windows-x64.zip`을 풀고 `tuidock.exe`를 실행한다. 첫 실행에서 사용자 프로그램 폴더 설치를 선택하면 `%LOCALAPPDATA%\Programs\TUIDock`에 런타임까지 설치된다. Windows 빌드는 코드 서명이 없어 SmartScreen에서 추가 정보 → 실행이 필요할 수 있다.
+
+PowerShell 설치·업데이트(관리자 권한 불필요, CLI를 사용자 PATH에도 추가):
+
+```powershell
+irm https://zidell.github.io/tuidock/install.ps1 | iex
+```
+
+업데이트 전에 만든 앱의 실행 창을 닫는다. 설치 후 새 터미널에서도 `tuidock --help`를 쓸 수 있다. 설치 스크립트는 앱을 자동 실행하거나 시작프로그램에 등록하지 않는다.
+
+macOS와 같은 가로 구성이다. 왼쪽 아이콘을 눌러 이모지를 고르고, 오른쪽 칸에 실행 파일을 놓거나 눌러 선택한 뒤 **제작**을 누른다. 이모지를 다시 선택하면 기존 이모지를 교체한다. 아이콘 오른쪽 클릭으로 이미지·배경색을 선택할 수 있다. 제작 후 아이콘을 바꾸면 0.8초 뒤 갱신하며 실행 중인 창에도 반영한다. Windows 이모지와 TUIDock 아이콘은 캔버스 바깥 여백을 제거한다.
+
+시작 메뉴의 **TUIDock** 폴더에 바로가기가 생긴다. **제작 후 실행**을 켜면 앱 창이 열리고 작업표시줄에 표시된다. 영구 고정은 바로가기를 오른쪽 클릭해 직접 한다. 로그인 시 자동 실행하는 시작프로그램 폴더에는 등록하지 않는다. 같은 앱을 다시 열면 기존 창을 앞으로 가져온다.
+
+Windows는 자체 터미널을 사용한다. 콘솔 창 방식은 실제 창 식별 시험에 실패해 제외했다. 앱당 메모리는 Microsoft Edit 실행 시 약 64 MB로 이 PC에서 측정했다.
+
+```powershell
+.\tuidock.exe install
+.\tuidock.exe make --command edit.exe --name Edit --emoji 📝
+.\tuidock.exe run --command edit.exe --arg README.md
+.\tuidock.exe remove Edit
+```
+
+앱별 정의·아이콘·설정·창 상태는 `%APPDATA%\tuidock\<id>`에 저장한다. `config.toml`은 글꼴·크기·줄간격·모양·대비를 설정하며 저장하면 바로 반영한다. `--app <id>` 뒤에 `--config-path`, `--print-default-config`, `--init-config`, `--check-config`를 사용할 수 있다. `Ctrl+,`는 설정, `Ctrl+=/-/0`은 글꼴 크기, `Ctrl+Shift+C/V`는 복사·붙여넣기다. 화면 선택이 있으면 `Ctrl+C`도 복사한다. 다른 Ctrl 조합은 프로그램에 전달한다. 정상 종료는 창을 닫고 오류 종료는 메시지를 남겨 아무 키를 기다린다. 스크롤백·탭·분할은 없다. Go 연결도 Windows에서 지원한다.
+
+소스에서 빌드할 때:
+
+Windows 10 1809 이상(ConPTY), Visual Studio 2022 C++ 빌드 도구, CMake, Qt 6.10.1 MSVC x64, Go 1.21 이상이 필요하다. PowerShell에서:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -QtRoot C:/Qt/6.10.1/msvc2022_64 -Package
+.\dist\TUIDock-windows-x64\tuidock.exe run --command edit.exe
+```
+
+`-QtRoot`에는 실제 Qt 설치 경로를 넣는다. 빌드·자동 시험 후 Qt·MSVC 런타임, D2Coding 글꼴과 라이선스를 담은 `dist/TUIDock-windows-x64.zip`을 만든다. Windows CI도 같은 빌드·시험을 실행해 ZIP을 아티팩트로 남긴다.
+
+`--command`는 실행 파일 경로 또는 PATH 이름, 인자는 `--arg`를 반복해서 넘긴다. 별도 셸을 띄우지 않는다.
+
+```powershell
+.\dist\TUIDock-windows-x64\tuidock.exe run --command edit.exe --arg README.md
+```
+
+Windows 11에서 실제 GUI의 파일 선택·제작·실행과 시작 메뉴 바로가기를 확인했다. MS 한글 입력기 조합·마우스 선택/휠·다중 DPI 모니터와 Windows 10은 추가 실기 확인이 필요하다.
+
+### macOS
 
 [TUIDock.dmg](https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg)를 열어 TUIDock을 Applications로 끌어다 놓는다. 또는 터미널에서(`tuidock` 명령까지 설치, 같은 명령으로 업데이트):
 
@@ -145,4 +195,4 @@ dock.Close()
 
 ## 라이선스
 
-GPLv3(`LICENSE`). 프로그램 쪽 Go 연결 `tuidock.go`만 MIT(`LICENSE.MIT`)라 GPL이 아닌 프로그램에서도 가져다 쓸 수 있다. 실행기는 프로그램을 별도 프로세스로 띄우므로 tuidock으로 만든 앱의 프로그램 라이선스에는 영향이 없다.
+GPLv3(`LICENSE`). 프로그램 쪽 Go 연결(`tuidock.go`·`tuidock_unix.go`·`tuidock_windows.go`·연결 시험)은 MIT(`LICENSE.MIT`)라 GPL이 아닌 프로그램에서도 가져다 쓸 수 있다. 실행기는 프로그램을 별도 프로세스로 띄우므로 tuidock으로 만든 앱의 프로그램 라이선스에는 영향이 없다.

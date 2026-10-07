@@ -55,7 +55,23 @@
   - 그대로 둠: `Cmd+M`, `` Cmd+` ``, `Cmd+Shift+3~6`, `Cmd+Shift+Q`, 연결 안 된 프로그램의 `Cmd+C`·`Cmd+V`.
   - 연결된 프로그램엔 나머지 Cmd 조합을 `key cmd+…`로 넘기고, 연결 안 된 프로그램이면 버린다(Cmd+T 새 탭 등이 돌면 단독 앱이 아니다).
 - **일부러 끝낼 때**(Dock 종료·Cmd+Q·`bye`)는 남는 빈 창을 닫고, 스스로·오류로 끝나면 메시지가 보이게 창을 둔다.
-- **윈도우**: 지금은 없다(`tuidock.go`는 빌드되고 `Open`이 nil). Windows판(자체 터미널 기본 + 콘솔 창, Qt + Gifiles 터미널 위젯) 계획은 `PLAN.md` — Windows에서 이어서 구현한다.
+- **윈도우**: `windows/`의 Qt 6.10 + ConPTY + 기존 libvterm 자체 터미널. 생성기·앱별 바로가기/AUMID·설정·Go 연결·ZIP 배포를 지원한다.
+
+### Windows
+
+- `windows/src/TermView.{h,cpp}`는 Gifiles TerminalWidget의 그리기·IME·선택·마우스를 가져온 GPLv3 코드다. 셸 연동·탭·스크롤백·드롭 입력은 제거했다. libvterm은 `launcher/libvterm`을 직접 빌드하고 수정·복제하지 않는다.
+- `windows/src/PtyWin.cpp`: 프로그램을 셸 없이 직접 실행한다. CRT 인자 이스케이프, UTF-8 환경, 별도 reader/writer/waiter 스레드. 종료 때 reader는 EOF까지 읽고 마지막 출력 뒤 종료 코드를 알린다. 스레드는 모두 join하며, `ClosePseudoConsole` 전에 읽기를 멈추면 교착할 수 있다.
+- 정상 종료 0은 창 닫기, 오류 종료는 코드 메시지와 아무 키 대기. 연결된 프로그램은 첫 창 닫기에서 `key cmd+q`를 받아 저장·종료할 수 있다(다시 닫기 또는 5초 무응답이면 종료). Ctrl+Shift+C/V, 선택이 있는 Ctrl+C, Ctrl+=/-/0·Ctrl+,는 실행기가 처리하고 나머지 Ctrl은 프로그램으로 간다.
+- `Maker`: `%APPDATA%/tuidock/<id>`의 app.toml·icon.ico·config.toml·state.ini. 실행 파일은 복사하지 않는다. 이름이 같으면 기존 ID를 재사용하고 지정하지 않은 아이콘·터미널·글꼴 기본값과 사용자 config를 이어받는다. 시작 메뉴 Programs/TUIDock의 `.lnk`에는 앱별 AUMID를 넣고 실제 창에도 같은 ID와 재실행 명령·아이콘을 설정한다. 바로가기는 설치본 `%LOCALAPPDATA%/Programs/TUIDock/tuidock.exe`를 우선한다. 영구 작업표시줄 고정은 사용자 조작이며 로그인 Startup은 등록하지 않는다.
+- `Generator`: macOS와 같은 470폭 가로 구성(128 아이콘 + 클릭 가능한 드롭 칸), 아래 실행기·실측 메모리·제작 후 실행 체크·제작 버튼. 이모지 수신 칸은 아이콘 뒤 투명한 1px 칸이며 Win+.로 연다. 입력마다 마지막 grapheme 하나로 교체한다(국기·피부색·ZWJ 포함). 실행 파일 선택 후 명시적 제작, 이후 아이콘 변경은 800ms 뒤 다시 만들고 실행 중인 창도 reload 메시지로 갱신한다. Windows 이모지는 실제 알파 영역을 캔버스에 맞추고 자체 아이콘은 macOS 바깥 여백·그림자를 제거한다. 원본 macOS PNG는 바꾸지 않는다.
+- 콘솔 창 모드는 Windows 11 빌드 26200에서 conhost HWND 식별 실기 시험에 실패해 제외했다. 지원되지 않는 console 값은 CLI·정의 읽기에서 거부한다. 외부 터미널이나 제목 기반 창 찾기를 우회로로 넣지 않는다.
+- `Config` 키 목록 하나에서 타입·범위·기본값·템플릿·검사를 만든다. QSaveFile 원자 저장, 파일/디렉터리 감시, 주석 보존. 설정 창은 Ctrl+,로 필요할 때 생성하며 슬라이더는 실시간 미리보기 후 놓을 때 저장한다. theme은 Windows 앱 모드를 따른다.
+- `LocalSocket`은 네이티브 AF_UNIX 스트림(Qt named pipe가 아님). 256바이트·1초·16클라이언트 제한, 접속 순서대로 메시지 전달. 앱별 Local 뮤텍스로 중복 실행을 막고 전경 권한을 기존 인스턴스에 넘긴다. Go는 Windows 스트림과 Unix 데이터그램을 플랫폼 파일로 분리한다. Windows 송신은 CloseWrite 후 Close로 RST 유실을 막는다. clipboard는 CF_UNICODETEXT, 복사는 OS 스레드에 고정한 숨은 HWND를 소유자로 사용한다.
+- 빌드·시험·패키지: `powershell -NoProfile -ExecutionPolicy Bypass -File windows/build.ps1 -QtRoot <Qt 6.10.1 msvc2022_64> -Package`. VS 2022 C++·CMake·Go 1.21 이상 필요. `build-win-release/Release`에 exe, `dist/TUIDock-windows-x64`에 Qt·MSVC 런타임·D2Coding·라이선스 동봉 실행본, 같은 이름 ZIP. Windows CI와 릴리스 작업은 같은 스크립트를 실행한다. 릴리스는 버전을 한 번 결정한 뒤 두 플랫폼 아티팩트가 성공했을 때 같은 태그로 배포한다.
+- 자동 시험은 `windows/tests/`의 실제 ConPTY fixture + Qt Test. 실행 인자(빈 값·공백·따옴표·끝 역슬래시·한글), cwd/env, UTF-8 모든 분할 경계, 박스 문자, 종료 코드·마지막 출력 순서, 자식이 자손을 남기고 끝나는 경우, 시작 실패, 대량 출력 중 닫기, Ctrl 입력·IME 확정·붙여넣기, VT 왕복, CLI를 확인한다. Microsoft Edit가 설치됐으면 임시 한글 문서 표시·크기 변경·Ctrl+Q 종료도 시험한다.
+- 자동 시험은 설정 원자 저장·2031 분할 감지·대비·ICO 모든 크기·바로가기 AUMID·실제 Go 소켓/클립보드·드롭/제작/이모지 교체·창 상태/연결 종료도 검사한다. Windows 데스크톱에서 실제 마우스로 파일 선택·제작을 눌러 Edit 창과 시작 메뉴 바로가기가 생기는 것을 확인했다.
+- 실측(Windows 11 빌드 26200): ConPTY 출력에 CSI 2031 h·996 n·1006 h가 전달되고, 입력의 CSI 997 응답과 SGR 마우스가 프로그램에 그대로 도착한다. OSC 10/11 `?`는 실행기 출력에 오지 않는다. 2031 지원·모양 변경 알림을 구현했고 미문서 ConPTY 플래그는 사용하지 않는다. Edit 실행 시 앱 메모리 약 64 MB.
+- **확인 안 한 것**: 실제 MS 한글 입력기 조합·클릭 확정, 실제 마우스 선택/휠, DPI가 다른 모니터, Windows 10·이전 Windows 11, GitHub CI 실행. Qt 이벤트로 확정 문자열·Ctrl 입력을 보낸 시험과 실제 키/마우스 확인을 구분한다.
 
 ### 외부 터미널(`--terminal terminal|iterm2|ghostty`)
 
@@ -95,8 +111,9 @@ AppKit + libvterm, CoreText로 칸 단위 그리기. 실행기가 창을 직접 
 
 ## 배포
 
-- 공개 레포 github.com/zidell/tuidock. 라이선스는 GPLv3(`LICENSE`)이고 `tuidock.go`만 MIT(`LICENSE.MIT`, 파일 첫 줄 SPDX) — Go는 정적 링크라 GPL이면 연결을 쓰는 프로그램까지 GPL이 되기 때문이다. 랜딩 페이지는 GitHub Pages(`main`의 `docs/`) https://zidell.github.io/tuidock/. 커밋 작성자 이메일은 그대로 둔다.
+- 공개 레포 github.com/zidell/tuidock. 라이선스는 GPLv3(`LICENSE`)이고 Go 연결 파일과 연결 시험은 MIT(`LICENSE.MIT`, 첫 줄 SPDX) — Go는 정적 링크라 GPL이면 연결을 쓰는 프로그램까지 GPL이 되기 때문이다. 랜딩 페이지는 GitHub Pages(`main`의 `docs/`) https://zidell.github.io/tuidock/. 커밋 작성자 이메일은 그대로 둔다.
 - **랜딩 페이지** `docs/index.html`: 기본 HTML, 한·영 전환(`data-l`). 순서: 소개·창 캡처·Dock 모양 아이콘 줄 → 다운로드 → 개발 동기 → 작동 방식 → CLI 실행법 → 권한 설정. 캡처 `docs/window.png`·`window-en.png`는 `open -n -g dist/TUIDock.app --args -emoji 🗓️ [-AppleLanguages '(en)']`로 띄워 `screencapture`. 예시 아이콘 `docs/icons/`는 아이콘 도구로.
+- Windows 캡처 `docs/window-windows.png`·`window-windows-en.png`는 `tuidock.exe gui --emoji 🗓️ --language ko|en`의 실제 창이다. Win32 창 좌표를 사용할 때 스레드 DPI를 Per Monitor V2로 맞춘 뒤 창 범위만 캡처한다. 두 플랫폼 소개·설치·단축키·CLI 차이를 한·영으로 함께 설명한다. `docs/install.ps1`은 Windows PowerShell 5.1/PowerShell 7에서 최신 ZIP→native install→사용자 PATH·환경 변경 알림까지 처리하며 앱을 자동 실행하지 않는다. `-ZipUrl <로컬 ZIP>`·`-NoPath`로 격리된 설치 시험을 한다.
 - **TUIDock 자신의 아이콘**: `swift scripts/make-icon.swift app/AppIcon.png`, 페이지용 `docs/icon.png`(256).
 - **릴리스** `.github/workflows/release.yml`: `main` 푸시 중 앱 코드(`app/`·`launcher/`·`icon/`·`tuidock`·`scripts/build-app.sh`·워크플로)가 바뀐 것만, 마지막 `v` 태그의 패치 +1로 태그·릴리스(`gh release create --target`). 부·주 버전은 `git tag v0.3.0 && git push --atomic origin main v0.3.0`. 겹친 푸시는 `concurrency`로 하나씩. 수동 실행은 아티팩트만, 단 끝 커밋에 `v` 태그가 있으면 그 버전으로 릴리스(앱 코드를 안 바꾼 푸시의 태그용). 2026-10 히스토리를 한 커밋으로 합치며 v0.1.0~v0.2.14 태그·릴리스를 지웠지만 Go 모듈 프록시·sumdb에 남아 있어(ginote `tui/go.mod`가 v0.2.0을 씀) 그 번호는 다시 쓰지 않는다. 새로 시작한 번호는 v0.3.0. 과정: macOS 러너에서 `UNIVERSAL=1 scripts/build-app.sh` → Developer ID 서명(안쪽 `launcher`·`icon` 먼저, `--options runtime --timestamp`) → DMG 서명 → 공증 → staple → `TUIDock.dmg`·`TUIDock-macos.zip` 업로드. 페이지 다운로드와 `docs/install.sh`는 최신 릴리스를 받는다.
 - 비밀값 이름은 ginote(`~/Sites/ginote` `docs/DESKTOP.md`)와 같다: `APPLE_CERTIFICATE`(p12 base64)·`APPLE_CERTIFICATE_PASSWORD`·`APPLE_SIGNING_IDENTITY`·`APPLE_ID`·`APPLE_PASSWORD`(앱 암호)·`APPLE_TEAM_ID`. 사용자 설정은 한 단계씩 안내한다.

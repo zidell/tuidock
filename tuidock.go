@@ -11,12 +11,11 @@
 //
 // 창이 포커스인 동안 Cmd 조합은 Terminal 대신 이 프로그램이 받는다(Cmd+H·Cmd+W는 실행기가 창을 숨기고, Cmd+M 제외). Cmd+Q(종료),
 // Cmd+V(붙여넣기 — Paste로 읽는다)도 프로그램이 처리해야 한다.
+// Windows는 자체 터미널의 창 닫기를 key cmd+q로 알린다. Ctrl 조합은 터미널 입력으로 직접 받는다.
 package tuidock
 
 import (
-	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -26,7 +25,7 @@ import (
 // Conn은 실행기와의 연결.
 type Conn struct {
 	dir string
-	c   *net.UnixConn
+	c   messageListener
 	ack chan struct{}
 }
 
@@ -38,7 +37,7 @@ func Open(onKey func(key string)) *Conn {
 	}
 	path := filepath.Join(dir, "app.sock")
 	os.Remove(path) // 자기 자신을 exec로 다시 시작했거나 지난 실행이 남긴 것
-	c, err := net.ListenUnixgram("unixgram", &net.UnixAddr{Name: path, Net: "unixgram"})
+	c, err := listenMessages(path)
 	if err != nil {
 		return nil
 	}
@@ -51,7 +50,7 @@ func Open(onKey func(key string)) *Conn {
 func (d *Conn) read(onKey func(string)) {
 	buf := make([]byte, 256)
 	for {
-		n, _, err := d.c.ReadFromUnix(buf)
+		n, err := d.c.ReadMessage(buf)
 		if err != nil {
 			return
 		}
@@ -75,12 +74,7 @@ func (d *Conn) send(msg string) {
 	if d == nil {
 		return
 	}
-	c, err := net.DialUnix("unixgram", nil, &net.UnixAddr{Name: filepath.Join(d.dir, "launcher.sock"), Net: "unixgram"})
-	if err != nil {
-		return
-	}
-	c.Write([]byte(msg))
-	c.Close()
+	sendMessage(filepath.Join(d.dir, "launcher.sock"), msg)
 }
 
 func (d *Conn) hello() { d.send("hello " + strconv.Itoa(os.Getpid())) }
@@ -122,18 +116,8 @@ func (d *Conn) Close() {
 	os.Remove(filepath.Join(d.dir, "app.sock"))
 }
 
-// Paste는 클립보드 글자(Cmd+V를 받았을 때). 읽지 못하면 "".
-func Paste() string {
-	out, err := exec.Command("pbpaste").Output()
-	if err != nil {
-		return ""
-	}
-	return string(out)
-}
-
-// Copy는 글자를 클립보드에 넣는다(Cmd+C를 받았을 때).
-func Copy(s string) {
-	cmd := exec.Command("pbcopy")
-	cmd.Stdin = strings.NewReader(s)
-	cmd.Run()
+// 플랫폼별 소켓은 연결 하나 또는 데이터그램 하나를 메시지 하나로 읽는다.
+type messageListener interface {
+	ReadMessage([]byte) (int, error)
+	Close() error
 }

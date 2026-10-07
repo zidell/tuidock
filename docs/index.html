@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TUIDock — 터미널 프로그램을 Dock 앱으로 · Turn terminal programs into Dock apps</title>
-<meta name="description" content="터미널 TUI 프로그램을 macOS Dock 앱으로 감싼다 · Wrap terminal TUI programs as macOS Dock apps">
+<title>TUIDock — 터미널 프로그램을 독립 앱으로 · Turn terminal programs into desktop apps</title>
+<meta name="description" content="터미널 TUI 프로그램을 macOS Dock과 Windows 시작 메뉴·작업표시줄에서 독립 앱처럼 실행한다 · Run terminal TUI programs as desktop apps on macOS and Windows">
 <link rel="canonical" href="https://zidell.github.io/tuidock/">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TUIDock">
 <meta property="og:url" content="https://zidell.github.io/tuidock/">
-<meta property="og:title" content="TUIDock — Turn terminal programs into Dock apps">
-<meta property="og:description" content="Wrap terminal TUI programs as macOS Dock apps: their own Dock icon, Cmd+Tab entry and window.">
+<meta property="og:title" content="TUIDock — Turn terminal programs into desktop apps">
+<meta property="og:description" content="Give terminal TUI programs their own icon and window on macOS and Windows.">
 <meta property="og:image" content="https://zidell.github.io/tuidock/window-en.png">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:locale:alternate" content="en_US">
@@ -22,14 +22,14 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "TUIDock",
-  "description": "Wrap terminal TUI programs as macOS Dock apps.",
+  "description": "Run terminal TUI programs as desktop apps on macOS and Windows.",
   "url": "https://zidell.github.io/tuidock/",
-  "downloadUrl": "https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg",
-  "installUrl": "https://zidell.github.io/tuidock/install.sh",
+  "downloadUrl": ["https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg", "https://github.com/zidell/tuidock/releases/latest/download/TUIDock-windows-x64.zip"],
+  "installUrl": ["https://zidell.github.io/tuidock/install.sh", "https://zidell.github.io/tuidock/install.ps1"],
   "image": "https://zidell.github.io/tuidock/icon.png",
-  "screenshot": "https://zidell.github.io/tuidock/window.png",
+  "screenshot": ["https://zidell.github.io/tuidock/window.png", "https://zidell.github.io/tuidock/window-windows.png"],
   "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "macOS 14+",
+  "operatingSystem": "macOS 14+, Windows 10 1809+ x64",
   "inLanguage": ["ko", "en"],
   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
   "isAccessibleForFree": true,
@@ -40,7 +40,14 @@
 </script>
 <style>
 pre { background: #eee; padding: 10px 12px; border-radius: 6px; overflow-x: auto; }
+.screenshots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.screenshots figure { margin: 0; min-width: 0; text-align: center; }
+.screenshots img { width: 100%; max-width: 470px; height: auto; }
+.screenshots figcaption { margin-bottom: 8px; color: #555; }
+@media (max-width: 540px) { body { padding: 0 12px; } .screenshots { grid-template-columns: minmax(0, 1fr); } }
 .dock { display: inline-flex; gap: 6px; padding: 6px 8px; border-radius: 18px; background: rgba(228, 228, 231, 0.8); border: 1px solid rgba(0, 0, 0, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6); }
+.dock { max-width: 100%; box-sizing: border-box; }
+.dock img { min-width: 0; height: auto; }
 </style>
 </head>
 <body style="max-width: 700px; margin: 0 auto">
@@ -54,19 +61,23 @@ pre { background: #eee; padding: 10px 12px; border-radius: 6px; overflow-x: auto
 <h1><img src="icon.png" alt="" width="32" height="32" align="absmiddle"> TUIDock</h1>
 
 <p>
-<b><span data-l="ko">터미널 프로그램을 Dock 앱으로</span><span data-l="en" hidden>Turn terminal programs into Dock apps</span></b>
+<b><span data-l="ko">터미널 프로그램을 독립 앱으로</span><span data-l="en" hidden>Turn terminal programs into desktop apps</span></b>
 </p>
 
 <p>
-<span data-l="ko">TUI 프로그램(htop, lazygit, 직접 만든 도구 …)을 끌어다 놓고 이모지를 고르면 <code>.app</code>이 나온다. Dock 아이콘·Cmd+Tab 항목이 따로 생기고, 창은 고른 실행기(터미널·아이텀·고스티)에 뜬다.</span>
-<span data-l="en" hidden>Drop a TUI program (htop, lazygit, your own tool …), pick an emoji, and you get a <code>.app</code>. It gets its own Dock icon and Cmd+Tab entry, while the window stays in the terminal you pick (Terminal, iTerm2, Ghostty).</span>
+<span data-l="ko">TUI 프로그램(lazygit, 직접 만든 도구 …)에 아이콘과 독립 창을 붙인다. macOS에서는 Dock·Cmd+Tab, Windows에서는 시작 메뉴·작업표시줄·Alt+Tab에서 다른 앱처럼 연다. 생성기는 앱을 만들거나 아이콘을 바꿀 때만 켜면 된다.</span>
+<span data-l="en" hidden>Give a TUI program (lazygit, your own tool …) its own icon and window. Open it like any other app from the Dock and Cmd+Tab on macOS, or Start, the taskbar and Alt+Tab on Windows. Open the generator only when creating an app or changing its icon.</span>
 </p>
 
-<p style="text-align: center; margin-bottom: 0"><img data-l="ko" src="window.png" alt="TUIDock 창" width="470" height="251"><img data-l="en" hidden src="window-en.png" alt="TUIDock window" width="470" height="251"></p>
+<div class="screenshots">
+<figure><figcaption>macOS</figcaption><img data-l="ko" src="window.png" alt="macOS TUIDock 생성기" width="470" height="251"><img data-l="en" hidden src="window-en.png" alt="TUIDock generator on macOS" width="470" height="251"></figure>
+<figure><figcaption>Windows</figcaption><img data-l="ko" src="window-windows.png" alt="Windows TUIDock 생성기: 아이콘, 드롭 칸, 제작 버튼" width="486" height="316"><img data-l="en" hidden src="window-windows-en.png" alt="TUIDock generator on Windows: icon, drop area and Create button" width="486" height="316"></figure>
+</div>
 
 <p style="text-align: center; margin-top: 10px"><span class="dock"><img src="icons/2.png" alt="" width="56" height="56"><img src="icons/3.png" alt="" width="56" height="56"><img src="icons/4.png" alt="" width="56" height="56"><img src="icons/5.png" alt="" width="56" height="56"><img src="icons/6.png" alt="" width="56" height="56"><img src="icons/7.png" alt="" width="56" height="56"></span></p>
 
 <h2 id="download"><span data-l="ko">다운로드</span><span data-l="en" hidden>Download</span></h2>
+<h3>macOS</h3>
 
 <p>
 <b><a href="https://github.com/zidell/tuidock/releases/latest/download/TUIDock.dmg">TUIDock.dmg</a></b>
@@ -79,13 +90,22 @@ pre { background: #eee; padding: 10px 12px; border-radius: 6px; overflow-x: auto
 
 <p><span data-l="ko">macOS 14 이상 · Apple Silicon·Intel · 터미널·아이텀·고스티</span><span data-l="en" hidden>macOS 14+ · Apple Silicon &amp; Intel · Terminal, iTerm2, Ghostty</span></p>
 
+<h3>Windows</h3>
+<p><b><a href="https://github.com/zidell/tuidock/releases/latest/download/TUIDock-windows-x64.zip">TUIDock-windows-x64.zip</a></b>
+— <span data-l="ko">압축을 풀고 tuidock.exe를 실행한다. Windows 10 1809 이상 x64, 자체 터미널 포함.</span><span data-l="en" hidden>Extract and run tuidock.exe. Windows 10 1809+ x64, with a built-in terminal.</span></p>
+<p><span data-l="ko">아이콘을 고르고 실행 파일을 놓은 뒤 제작을 누른다. 시작 메뉴의 TUIDock 폴더에 바로가기가 생기고, 제작 후 실행을 켜면 창이 열린다. 영구 작업표시줄 고정은 바로가기를 오른쪽 클릭해 직접 한다. 로그인 자동 실행은 등록하지 않는다.</span><span data-l="en" hidden>Choose an icon, drop an executable and click Create. A shortcut appears in the TUIDock folder in Start; Run after creating opens its window. Right-click the shortcut to pin it to the taskbar. Login Startup is not enabled.</span></p>
+<p><span data-l="ko">또는 PowerShell에서 설치·업데이트한다. 사용자 프로그램 폴더에 설치하고 CLI 경로를 사용자 PATH에 추가한다(관리자 권한 불필요):</span><span data-l="en" hidden>Or install/update from PowerShell. Installs in your user programs folder and adds the CLI to your user PATH (no administrator required):</span></p>
+<pre>irm https://zidell.github.io/tuidock/install.ps1 | iex</pre>
+<p><span data-l="ko">업데이트 전에 만든 앱의 실행 창을 닫는다. 설치 후 새 터미널에서도 <code>tuidock</code> 명령을 쓸 수 있다.</span><span data-l="en" hidden>Close running generated apps before updating. After installation, <code>tuidock</code> is also available in new terminals.</span></p>
+<p><span data-l="ko">Windows 빌드는 서명이 없어 SmartScreen에서 추가 정보 → 실행이 필요할 수 있다. 자세한 설정·단축키·빌드는 <a href="https://github.com/zidell/tuidock#windows">README</a>를 참고한다.</span><span data-l="en" hidden>The Windows build is unsigned; SmartScreen may require More info → Run anyway. See the <a href="https://github.com/zidell/tuidock/blob/main/README.en.md#windows">README</a> for settings, shortcuts and building.</span></p>
+
 <hr>
 
 <h2><span data-l="ko">개발 동기</span><span data-l="en" hidden>Motivation</span></h2>
 
 <p>
-<span data-l="ko">매일 쓰는 터미널 도구가 Terminal 탭 사이에 섞여 있으면 찾기 어렵고, Cmd+Tab으로 바로 갈 수도 없다. 무엇보다 Terminal 탭은 앱이 아니라서 <a href="https://folivora.ai/">BetterTouchTool</a>(BTT) 같은 도구로 단축키를 붙일 수 없었다. 단독 앱이 되면 “이 단축키로 캘린더 열기·앞으로 가져오기”를 다른 앱처럼 지정할 수 있다. 이게 가장 큰 이유다.</span>
-<span data-l="en" hidden>Terminal tools you use every day get lost among Terminal tabs, and Cmd+Tab can't take you straight to them. Above all, a Terminal tab isn't an app, so tools like <a href="https://folivora.ai/">BetterTouchTool</a> (BTT) can't bind a shortcut to it. As a standalone app it can have its own “open / bring to front” shortcut like any other app — that was the main reason.</span>
+<span data-l="ko">매일 쓰는 터미널 도구가 탭 사이에 섞여 있으면 찾기 어렵고, 앱 전환으로 바로 갈 수도 없다. 독립 앱이면 아이콘을 눌러 열고, macOS의 <a href="https://folivora.ai/">BetterTouchTool</a>이나 Windows의 AutoHotkey로 “캘린더 열기·앞으로 가져오기” 같은 단축키를 붙일 수 있다.</span>
+<span data-l="en" hidden>Terminal tools get lost among tabs, and app switching cannot take you straight to them. As separate apps, they can open from an icon or an “open calendar / bring to front” shortcut using <a href="https://folivora.ai/">BetterTouchTool</a> on macOS or AutoHotkey on Windows.</span>
 </p>
 
 <p>
@@ -94,43 +114,44 @@ pre { background: #eee; padding: 10px 12px; border-radius: 6px; overflow-x: auto
 </p>
 
 <p>
-<span data-l="ko">터미널 에뮬레이터를 품은 앱은 도구 하나에 100MB가 넘는다. TUIDock은 창을 Terminal에 맡기고 Dock 아이콘과 단축키만 얹어서, 도구당 약 23MB(Terminal 창 9MB + 실행기 14MB)다.</span>
-<span data-l="en" hidden>An app that embeds a terminal emulator costs over 100MB per tool. TUIDock leaves the window to Terminal and only adds the Dock icon and shortcuts — about 23MB per tool (9MB Terminal window + 14MB launcher).</span>
+<span data-l="ko">기본 실행기는 자체 터미널이다. 실측 메모리는 macOS에서 창 1200×900pt 기준 약 43~46MB, Windows에서 Microsoft Edit 실행 시 약 64MB였다. 프로그램과 창 크기에 따라 달라진다. macOS에서는 설치된 외부 터미널도 고를 수 있다.</span>
+<span data-l="en" hidden>The built-in terminal is the default. Measured memory was about 43–46MB for a 1200×900pt window on macOS, and about 64MB running Microsoft Edit on Windows. Usage varies with the program and window size. On macOS, installed external terminals are also available.</span>
 </p>
 
 <h2><span data-l="ko">작동 방식</span><span data-l="en" hidden>How it works</span></h2>
 
 <p>
-<span data-l="ko">만든 앱은 작은 실행기다. 열면 고른 터미널에 새 창을 띄워 프로그램을 실행하고, 프로그램이 끝날 때까지 같이 떠 있으면서 그 창을 단독 앱처럼 다룬다. 프로그램이 끝나면 앱도 끝난다.</span>
-<span data-l="en" hidden>A made app is a small launcher. It opens a new window in the terminal you picked, running your program, stays alive alongside it, and treats that window like a standalone app. When the program exits, so does the app.</span>
+<span data-l="ko">macOS에서는 실행기 <code>.app</code>, Windows에서는 시작 메뉴 바로가기를 만든다. 열면 프로그램을 독립 터미널 창에 실행하고 실행기가 함께 동작한다. 프로그램을 정상 종료하면 창과 실행기도 끝난다. 실행 파일은 원래 경로를 참조하므로 다시 빌드해도 앱을 새로 만들 필요가 없다.</span>
+<span data-l="en" hidden>Creates a launcher <code>.app</code> on macOS or a Start shortcut on Windows. Opening it runs your program in its own terminal window, with the launcher alongside it. A normal program exit closes the window and launcher. The executable stays at its original path, so rebuilding it needs no new app.</span>
 </p>
 
 <ul>
-<li><span data-l="ko">Dock 아이콘·실행 중 점·Cmd+Tab 항목. Dock을 누르거나 Cmd+Tab으로 고르면 그 창이 앞으로 온다.</span><span data-l="en" hidden>A Dock icon, running dot and Cmd+Tab entry. Clicking it or picking it with Cmd+Tab brings its window forward.</span></li>
-<li><span data-l="ko"><code>Cmd+W</code>는 창을 가리고, <code>Cmd+Q</code>는 그 앱만 끝낸다(Terminal은 그대로). <code>Cmd+T</code>(새 탭) 같은 Terminal 단축키는 그 창에서 막힌다. 복사·붙여넣기는 된다.</span><span data-l="en" hidden><code>Cmd+W</code> hides the window, <code>Cmd+Q</code> quits just that app (Terminal stays). Terminal shortcuts like <code>Cmd+T</code> (new tab) are blocked in that window; copy and paste still work.</span></li>
+<li><span data-l="ko">macOS: 앱별 Dock 아이콘·Cmd+Tab 항목. <code>Cmd+W</code>는 가리기, <code>Cmd+Q</code>는 종료다. Windows: 앱별 시작 메뉴 바로가기·작업표시줄 아이콘·Alt+Tab 항목. 같은 앱을 다시 열면 기존 창을 앞으로 가져온다.</span><span data-l="en" hidden>macOS: a separate Dock icon and Cmd+Tab entry; <code>Cmd+W</code> hides and <code>Cmd+Q</code> quits. Windows: a Start shortcut, taskbar icon and Alt+Tab entry per app; opening it again brings its existing window forward.</span></li>
+<li><span data-l="ko">자체 터미널 설정은 macOS <code>Cmd+,</code>, Windows <code>Ctrl+,</code>. Windows 복사·붙여넣기는 <code>Ctrl+Shift+C/V</code>이며, 그 밖의 Ctrl 조합은 프로그램이 받는다.</span><span data-l="en" hidden>Built-in terminal settings: <code>Cmd+,</code> on macOS, <code>Ctrl+,</code> on Windows. Windows copy/paste uses <code>Ctrl+Shift+C/V</code>; other Ctrl combinations reach your program.</span></li>
 <li><span data-l="ko">창 크기와 글꼴 크기를 기억했다가 다음에 같은 크기로 연다.</span><span data-l="en" hidden>Remembers the window and font size for next time.</span></li>
 <li><span data-l="ko">아이콘은 이모지 하나, 또는 이미지.</span><span data-l="en" hidden>The icon is a single emoji, or an image.</span></li>
-<li><span data-l="ko">프로그램이 <a href="https://github.com/zidell/tuidock#프로그램-쪽-연결">프로토콜</a>을 따르면 Cmd 조합(<code>Cmd+F</code> …)을 Terminal 대신 프로그램이 받는다. Go 패키지가 있다.</span><span data-l="en" hidden>If your program speaks the <a href="https://github.com/zidell/tuidock/blob/main/README.en.md#connecting-your-program">protocol</a>, it receives Cmd shortcuts (<code>Cmd+F</code> …) instead of Terminal. There's a Go package.</span></li>
-<li><span data-l="ko">실행기는 터미널·아이텀·고스티 중에서 고른다. 아이텀은 창 하나만 가릴 수 없어 <code>Cmd+W</code>가 최소화다. 고스티는 창 하나만 가릴 방법이 없어 앱마다 고스티를 따로 띄운다(앱당 메모리 70~100MB 더).</span><span data-l="en" hidden>Pick Terminal, iTerm2 or Ghostty. iTerm2 can't hide a single window, so <code>Cmd+W</code> minimizes it. Ghostty can't either, so each app runs its own Ghostty (about 70-100MB more memory per app).</span></li>
-<li><span data-l="ko">메뉴 막대는 실행기 것이 그대로 보인다.</span><span data-l="en" hidden>The menu bar is still the terminal's.</span></li>
+<li><span data-l="ko">두 플랫폼에서 <a href="https://github.com/zidell/tuidock#프로그램-쪽-연결">Go 연결</a>로 포커스·가리기·종료·클립보드를 다룰 수 있다. macOS는 Cmd 조합을 연결된 프로그램으로 전달하고, Windows는 창 닫기를 종료 요청으로 알린다.</span><span data-l="en" hidden>The <a href="https://github.com/zidell/tuidock/blob/main/README.en.md#connecting-your-program">Go connection</a> supports focus, hide, close and clipboard on both platforms. macOS forwards Cmd combinations; Windows delivers window closing as a quit request.</span></li>
+<li><span data-l="ko">macOS의 외부 실행기: Terminal·iTerm2·Ghostty. 외부 터미널에서는 메뉴 막대도 그 터미널의 것이며, iTerm2의 가리기는 최소화다. Windows는 자체 터미널을 사용한다.</span><span data-l="en" hidden>External terminals on macOS: Terminal, iTerm2 and Ghostty. Their menu bar belongs to the terminal; hiding an iTerm2 window minimizes it. Windows uses the built-in terminal.</span></li>
 </ul>
 
 <h2><span data-l="ko">CLI 실행법</span><span data-l="en" hidden>Command line</span></h2>
+<p><span data-l="ko">두 플랫폼에서 <code>tuidock</code> 명령을 쓴다. 아래 예는 설치 스크립트로 PATH를 설정한 경우다. ZIP만 풀었다면 Windows에서 <code>.\tuidock.exe</code>로 실행한다.</span><span data-l="en" hidden>Both platforms provide <code>tuidock</code>. Examples assume the install script added it to PATH; with only an extracted ZIP, use <code>.\tuidock.exe</code> on Windows.</span></p>
 
 <pre>tuidock &lt;<span data-l="ko">실행 파일</span><span data-l="en" hidden>program</span>&gt; [<span data-l="ko">이모지</span><span data-l="en" hidden>emoji</span>] [<span data-l="ko">옵션</span><span data-l="en" hidden>options</span>]</pre>
 
 <table border="1" cellpadding="4" cellspacing="0" width="100%">
 <tr><td><code><span data-l="ko">실행 파일</span><span data-l="en" hidden>program</span></code></td><td><span data-l="ko">경로나 PATH의 명령 이름(<code>htop</code>). 셸 alias는 안 된다</span><span data-l="en" hidden>A path or a command name on PATH (<code>htop</code>). Shell aliases don't work</span></td></tr>
-<tr><td><code><span data-l="ko">이모지</span><span data-l="en" hidden>emoji</span></code></td><td><span data-l="ko">아이콘. 없으면 아무거나 고르고, 같은 이름 앱이 있으면 그 아이콘을 그대로 쓴다</span><span data-l="en" hidden>The icon. Without one, a random emoji — or the existing app's icon if one with that name exists</span></td></tr>
+<tr><td><code><span data-l="ko">이모지</span><span data-l="en" hidden>emoji</span></code></td><td><span data-l="ko">아이콘. 같은 이름 앱이 있으면 기존 아이콘을 유지한다. 새 앱에서 생략하면 macOS는 임의 이모지, Windows는 이름 첫 글자를 쓴다</span><span data-l="en" hidden>The icon. An existing app keeps its icon. For a new app without one, macOS picks an emoji; Windows uses the first letter</span></td></tr>
 <tr><td><code>--name</code></td><td><span data-l="ko">앱 이름(기본: 파일 이름 첫 글자만 대문자로, <code>htop</code> → <code>Htop</code>)</span><span data-l="en" hidden>App name (default: the file name capitalized, <code>htop</code> → <code>Htop</code>)</span></td></tr>
-<tr><td><code>--icon</code></td><td><span data-l="ko">이모지 대신 이미지 아이콘(PNG·JPG·ICNS)</span><span data-l="en" hidden>An image icon instead of an emoji (PNG, JPG, ICNS)</span></td></tr>
+<tr><td><code>--icon</code></td><td><span data-l="ko">이모지 대신 이미지 아이콘(PNG·JPG, macOS ICNS·Windows ICO)</span><span data-l="en" hidden>An image icon instead of an emoji (PNG, JPG; ICNS on macOS, ICO on Windows)</span></td></tr>
 <tr><td><code>--arg</code></td><td><span data-l="ko">실행 인자(여러 번)</span><span data-l="en" hidden>Program argument (repeatable)</span></td></tr>
-<tr><td><code>--terminal</code></td><td><span data-l="ko">실행기: <code>builtin</code>(자체 터미널, 기본)·<code>terminal</code>·<code>iterm2</code>·<code>ghostty</code>. 주지 않으면 같은 이름 앱의 것을 그대로</span><span data-l="en" hidden>Terminal to run in: <code>builtin</code> (built-in, default), <code>terminal</code>, <code>iterm2</code>, <code>ghostty</code>. Without it, an existing app's choice is kept</span></td></tr>
-<tr><td><code>--no-dock</code></td><td><span data-l="ko">Dock에 고정하지 않는다</span><span data-l="en" hidden>Don't pin to the Dock</span></td></tr>
+<tr><td><code>--terminal</code></td><td><span data-l="ko">기본 <code>builtin</code>(자체 터미널). macOS는 <code>terminal</code>·<code>iterm2</code>·<code>ghostty</code>도 지원. 생략하면 기존 앱의 선택을 유지</span><span data-l="en" hidden>Defaults to <code>builtin</code>. macOS also supports <code>terminal</code>, <code>iterm2</code> and <code>ghostty</code>. Omit to keep an existing app's choice</span></td></tr>
+<tr><td><code>--no-dock</code> / <code>--no-shortcut</code></td><td><span data-l="ko">macOS: Dock 고정 생략. Windows: 시작 메뉴 바로가기 생략</span><span data-l="en" hidden>macOS: skip Dock pinning. Windows: skip the Start shortcut</span></td></tr>
 <tr><td><code>--help</code></td><td><span data-l="ko">도움말(<code>make</code>·<code>install</code> 등 전체 옵션)</span><span data-l="en" hidden>Help (all options, including <code>make</code> and <code>install</code>)</span></td></tr>
 </table>
 
 <p><span data-l="ko">예:</span><span data-l="en" hidden>Examples:</span></p>
+<h3>macOS</h3>
 
 <pre>tuidock htop 😁                  <span data-l="ko"># PATH의 명령 이름</span><span data-l="en" hidden># a command on PATH</span>
 tuidock ~/Sites/foo/bin/foo 🦊   <span data-l="ko"># 경로</span><span data-l="en" hidden># a path</span>
@@ -140,8 +161,15 @@ tuidock foo                      <span data-l="ko"># 이모지를 빼면 아무�
 <span data-l="ko">앱을 <code>/Applications</code>에 넣고 Dock에 고정한다. 실행 파일은 복사하지 않고 그 경로를 실행하므로, 프로그램을 다시 빌드해도 앱은 그대로다. 같은 이름으로 다시 만들면 덮어써서 빌드 스크립트에 넣어 두기 좋다.</span>
 <span data-l="en" hidden>It installs the app in <code>/Applications</code> and pins it to the Dock. The executable isn't copied — the app runs it from its path — so rebuilding your program needs no new app. Making it again with the same name overwrites it, so it fits in a build script.</span>
 </p>
+<h3>Windows</h3>
+<pre>tuidock edit.exe 📝
+tuidock make --command C:\tools\my-tui.exe --name "My TUI" --emoji 🦊
+tuidock run --command edit.exe --arg README.md
+tuidock remove "My TUI"</pre>
+<p><span data-l="ko"><code>make</code>는 시작 메뉴에 등록하고, <code>run --command</code>는 제작 없이 바로 실행한다. 정의·아이콘·설정은 <code>%APPDATA%\tuidock\&lt;id&gt;</code>에 저장한다. 같은 이름으로 다시 제작하면 기존 앱을 갱신한다.</span><span data-l="en" hidden><code>make</code> creates a Start shortcut; <code>run --command</code> launches directly without creating one. Definitions, icons and settings live in <code>%APPDATA%\tuidock\&lt;id&gt;</code>. Creating the same name again updates the existing app.</span></p>
 
 <h2><span data-l="ko">권한 설정</span><span data-l="en" hidden>Permissions</span></h2>
+<p><span data-l="ko">아래 자동화 권한은 macOS의 외부 터미널에만 해당한다. Windows 설치는 관리자 권한 없이 사용자 폴더에 한다.</span><span data-l="en" hidden>The automation permissions below apply to external terminals on macOS. Windows installs in user folders without administrator access.</span></p>
 
 <ul>
 <li><span data-l="ko">실행기로 터미널·아이텀을 고른 앱은 처음 열 때 “Terminal(아이텀이면 iTerm)을 제어하려고 합니다” 창이 뜬다(기본인 자체 터미널과 고스티는 묻지 않는다). <b>허용</b>을 누른다. 창을 띄우고 앞으로 가져오는 데만 쓴다. 다른 권한(손쉬운 사용 등)은 필요 없다.</span><span data-l="en" hidden>With Terminal or iTerm2 as the terminal, a made app asks to control Terminal (or iTerm) the first time you open it (the default built-in terminal and Ghostty don't ask). Click <b>Allow</b> — it's only used to open the window and bring it forward. No other permission (Accessibility etc.) is needed.</span></li>

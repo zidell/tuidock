@@ -1,0 +1,36 @@
+name: windows
+on:
+  push:
+    paths: ['windows/**', 'launcher/libvterm/**', 'launcher/fonts/**', 'app/AppIcon.png', '*.go', 'go.mod', '.github/workflows/windows.yml']
+  pull_request:
+    paths: ['windows/**', 'launcher/libvterm/**', 'launcher/fonts/**', 'app/AppIcon.png', '*.go', 'go.mod', '.github/workflows/windows.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
+          cache: false
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.10.1'
+          arch: win64_msvc2022_64
+          cache: true
+      - name: Build, test and package
+        run: ./windows/build.ps1 -Package
+      - name: Check package contents
+        shell: pwsh
+        run: |
+          foreach ($file in 'tuidock.exe', 'Qt6Widgets.dll', 'platforms/qwindows.dll', 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll', 'LICENSE', 'licenses/libvterm.txt', 'fonts/OFL.txt') {
+            if (-not (Test-Path -LiteralPath "dist/TUIDock-windows-x64/$file")) { throw "Missing $file" }
+          }
+          if ((Get-ChildItem dist/TUIDock-windows-x64/fonts/*.ttf).Count -ne 2) { throw 'Missing bundled fonts' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TUIDock-windows-x64
+          path: dist/TUIDock-windows-x64.zip
