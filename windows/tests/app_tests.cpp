@@ -48,7 +48,7 @@ private slots:
     }
     void configAtomicSave() {
         QTemporaryDir temp; Config config(temp.filePath("config.toml"),{}); QString error; QVERIFY(config.ensure(&error));
-        QVERIFY(writeText(config.path,"# kept\nfont_size = 14 # inline\ntheme='dark'\n")); config.reload(); QVERIFY(config.set("font_size",16.));
+        QVERIFY(writeText(config.path,"# kept\nfont_size = 14 # inline\ntheme='dark'\n")); config.reload(); QVERIFY2(config.set("font_size",16.,&error),qPrintable(error));
         QVERIFY(readText(config.path).contains("# inline")); QVERIFY(readText(config.path).startsWith("# kept")); QCOMPARE(config.current.size,16.);
         QSignalSpy changed(&config,&Config::changed); QVERIFY(writeText(config.path,"font_size=20\ncontrast=9\n")); QTRY_VERIFY(changed.size()>0); QCOMPARE(config.current.size,20.);
         changed.clear(); QVERIFY(writeText(config.path,"font_size=21\n")); QTRY_VERIFY(changed.size()>0); QCOMPARE(config.current.size,21.);
@@ -113,7 +113,7 @@ private slots:
     void launcherStateAndClose() {
         QTemporaryDir temp; Paths p=paths(temp); MakeOptions o; o.spec.name="Launcher test"; o.spec.command=fixture(); AppSpec app; QString error; QVERIFY(makeApp(p,o,app,&error));
         Launcher launcher(p,app); QVERIFY2(launcher.start(&error)==0,qPrintable(error)); auto *term=launcher.findChild<TermView *>(); QVERIFY(term); QTRY_VERIFY(term->screenText().contains("READY"));
-        Config *config=launcher.findChild<Config *>(); QVERIFY(config); QSize cells=term->cells(); QVERIFY(config->set("font_size",18.)); QCOMPARE(term->cells(),cells); QTest::keyClick(term,Qt::Key_Equal,Qt::ControlModifier); QCOMPARE(config->current.size,19.); QTest::keyClick(term,Qt::Key_0,Qt::ControlModifier); QCOMPARE(config->current.size,13.);
+        Config *config=launcher.findChild<Config *>(); QVERIFY(config); QSize cells=term->cells(); QVERIFY2(config->set("font_size",18.,&error),qPrintable(error)); QCOMPARE(term->cells(),cells); QTest::keyClick(term,Qt::Key_Equal,Qt::ControlModifier); QCOMPARE(config->current.size,19.); QTest::keyClick(term,Qt::Key_0,Qt::ControlModifier); QCOMPARE(config->current.size,13.);
         QTest::keyClick(term,Qt::Key_Comma,Qt::ControlModifier); QTRY_VERIFY(launcher.findChild<Settings *>()); auto *settings=launcher.findChild<Settings *>(); QTest::keyClick(settings,Qt::Key_Escape); QTRY_VERIFY(!launcher.findChild<Settings *>());
         LocalSocket appSocket; QVERIFY(appSocket.listen(Paths::socketDir(app.id)+"/app.sock",&error)); QSignalSpy keys(&appSocket,&LocalSocket::message); QVERIFY(LocalSocket::send(Paths::socketDir(app.id)+"/launcher.sock","hello 123")); QTest::qWait(50); launcher.close(); QTRY_COMPARE(keys.size(),1); QCOMPARE(keys[0][0].toByteArray(),QByteArray("key cmd+q")); QVERIFY(launcher.isVisible());
         launcher.close(); QVERIFY(!launcher.isVisible()); QVERIFY(QFileInfo::exists(p.app(app.id)+"/state.ini"));

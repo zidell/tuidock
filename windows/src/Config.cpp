@@ -7,6 +7,7 @@
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QSet>
+#include <QThread>
 #include <algorithm>
 #include <cmath>
 
@@ -15,14 +16,21 @@ QString tomlString(const QString &value) {
     return QString::fromUtf8(json.mid(1, json.size() - 2));
 }
 QString readText(const QString &path) { QFile f(path); return f.open(QIODevice::ReadOnly) ? QString::fromUtf8(f.readAll()) : QString(); }
+// writeText는 임시 파일에 쓰고 바꿔치기한다. 방금 쓴 파일을 백신(Defender 실시간 검사) 등이 잠깐 열고 있으면 Windows가
+// 바꿔치기(MoveFileEx)를 거부하므로 잠시 뒤 다시 한다(CI에서 직전에 쓴 config.toml을 다시 저장하다 간헐적으로 실패했다).
 bool writeText(const QString &path, const QString &text, QString *error) {
-    QSaveFile f(path);
     const QByteArray bytes = text.toUtf8();
-    if (!QDir().mkpath(QFileInfo(path).absolutePath()) || !f.open(QIODevice::WriteOnly) || f.write(bytes) != bytes.size() || !f.commit()) {
-        if (error) *error = QStringLiteral("Could not write %1: %2").arg(path, f.errorString());
-        return false;
-    }
-    return true;
+    QString why;
+    if (QDir().mkpath(QFileInfo(path).absolutePath())) {
+        for (int attempt = 0; attempt < 10; ++attempt) {
+            if (attempt) QThread::msleep(50);
+            QSaveFile f(path);
+            if (f.open(QIODevice::WriteOnly) && f.write(bytes) == bytes.size() && f.commit()) return true;
+            why = f.errorString();
+        }
+    } else why = QStringLiteral("could not create the folder");
+    if (error) *error = QStringLiteral("Could not write %1: %2").arg(path, why);
+    return false;
 }
 namespace {
 QString withoutComment(const QString &text) {
