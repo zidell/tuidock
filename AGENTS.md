@@ -87,7 +87,6 @@
 
 AppKit + libvterm, CoreText로 칸 단위 그리기. 실행기가 창을 직접 가져 메뉴·Cmd 키가 이 앱 것이다(AppleScript·단축키 가로채기·폴링 없음, `setHostFront`가 막음). SwiftTerm 앱은 무거워(101MB) 쓰지 않는다.
 
-- **Gifiles와 같이 고친다.** 자체 터미널의 동작(마우스·입력기·OSC·모드·그리기)을 바꾸면 Gifiles `src/TerminalWidget.cpp`(`~/Sites/gifiles`)에도 같은 변경을 반영하고 그쪽 `AGENTS.md`의 터미널 규칙도 맞춘다(사용자 지시). 두 곳의 규칙이 갈리면 어느 쪽이 맞는지 묻는다.
 - **박스 문자**(U+2500–259F)는 글꼴 대신 칸을 채우는 도형으로 그린다(Gifiles `TerminalWidget::drawBoxGlyph`와 같은 규칙, 점선 문자만 글꼴). 줄간격을 벌려도 선이 이어진다.
 - **프로세스는 앱마다 따로**(Dock·Cmd+Tab이 프로세스 단위). 프로그램은 pty 자식이라 이어받기·ping이 없다.
 - **실행**: 로그인·대화형 셸(`-zsh -i -c 'exec "$0" "$@"'`)로 Terminal과 같은 PATH. `TERM=xterm-256color`·`COLORTERM=truecolor`·`TERM_PROGRAM=tuidock`. `LANG`은 늘 선호 언어 + 지역(`ko_KR.UTF-8`, `/usr/share/locale`에 있는 조합만)으로 정한다(물려받은 값도 바꿈, `LC_ALL`이 있으면 그대로). 실행기 번들엔 현지화가 없어 `Locale.current`는 쓸 수 없다.
