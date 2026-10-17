@@ -4,6 +4,9 @@
 // TUI 한 개를 띄우는 창이라 탭·분할·스크롤백·설정 창은 없다. 글꼴·줄간격은 Info.plist와 UserDefaults(launcher.swift).
 import AppKit
 
+// dragZoneOSC는 프로그램이 끌기 칸을 알리는 OSC 번호(tuidock 전용, 다른 터미널은 모르는 OSC라 버린다).
+private let dragZoneOSC: Int32 = 7790
+
 final class TermView: NSView, NSTextInputClient {
     private var vt: OpaquePointer!
     private var screen: OpaquePointer!
@@ -131,6 +134,10 @@ final class TermView: NSView, NSTextInputClient {
         // OSC 10·11 "?"(글자·배경색 묻기)에 답한다. calendar-tui(lipgloss) 같은 TUI가 이걸로 다크·라이트를 고른다.
         // 답이 없으면 어둡다고 보고 라이트 모드에서도 어두운 배경용 색을 쓴다(Terminal.app은 답한다)
         fallbacks.osc = { cmd, frag, user in
+            if cmd == dragZoneOSC {
+                TermView.of(user).dragZoneFragment(frag)
+                return 1
+            }
             guard cmd == 10 || cmd == 11, frag.initial, frag.final, frag.len == 1, frag.str?.pointee == 0x3F else { return 0 }
             TermView.of(user).reportColor(Int(cmd))
             return 1
@@ -769,15 +776,36 @@ final class TermView: NSView, NSTextInputClient {
     // 프로그램이 마우스를 켰으면 누름·놓음을 넘긴다(Shift를 누르면 넘기지 않고 선택).
     // Shift를 누른 클릭도 넘긴다(목록 범위 선택 등). 화면 선택은 끌기로 하므로 Shift+끌기도 그대로 선택이 된다.
     private func mouseToProgram(_ e: NSEvent) -> Bool { mouseMode != Int32(VTERM_PROP_MOUSE_NONE) }
-    // 끌기 보고를 켠 프로그램(모드 1002·1003, Bubble Tea의 CellMotion 등)엔 누름·끌기·놓음을 바로 넘긴다(사이드바 경계 끌기 등).
-    // 화면 선택은 Shift나 Option을 누른 채 끈다(다른 터미널과 같은 관례).
-    // 그 밖엔 누름을 놓을 때까지 미룬다: 다른 칸으로 끌면 화면 선택이 되므로, 누르는 순간 동작하는 프로그램이 선택을 시작한 칸을
-    // 누른 것으로 받지 않게. 같은 칸에서 놓으면 누름·놓음을 함께 보낸다.
+    // 누름은 놓을 때까지 미룬다: 다른 칸으로 끌면 화면 선택이 되므로, 누르는 순간 동작하는 프로그램(calendar-tui는 누름에 일정을 연다)이
+    // 선택을 시작한 칸을 누른 것으로 받지 않게. 같은 칸에서 놓으면 누름·놓음을 함께 보낸다. 끌기를 쓰는 곳은 바로 넘기고 끌기도
+    // 넘긴다: 프로그램이 알린 끌기 칸(dragZones, Shift를 누르면 선택)과 Option을 누른 누름.
     private var pendingPress: VTermPos? // 프로그램에 보낼 누름(아직 안 보냄)
     private var pendingMods = VTERM_MOD_NONE // 그 누름 때의 수식키(놓기 전에 키를 떼도 누를 때 것으로 보낸다)
     private var dragToProgram = false   // 누름·끌기·놓음을 바로 넘기는 중
-    private func dragsToProgram(_ e: NSEvent) -> Bool {
-        mouseMode >= Int32(VTERM_PROP_MOUSE_DRAG) && e.modifierFlags.isDisjoint(with: [.shift, .option])
+    private func dragsToProgram(_ p: VTermPos, _ e: NSEvent) -> Bool {
+        if e.modifierFlags.contains(.option) { return true }
+        guard mouseMode >= Int32(VTERM_PROP_MOUSE_DRAG), !e.modifierFlags.contains(.shift) else { return false }
+        return dragZones.contains { Int(p.col) >= $0.x && Int(p.col) < $0.x + $0.w && Int(p.row) >= $0.y && Int(p.row) < $0.y + $0.h }
+    }
+
+    // 끌기 칸: 프로그램이 OSC 7790으로 알린 칸 사각형(사이드바 경계 등). 그 칸에서 누른 끌기는 화면 선택 대신 프로그램이 받는다.
+    // 형식 ESC ] 7790 ; x,y,w,h[;x,y,w,h…] BEL(0부터 센 칸·줄), 빈 값이면 지운다. 프로그램이 끝나도 창이 같이 닫혀 지울 일이 없다.
+    private var dragZones: [(x: Int, y: Int, w: Int, h: Int)] = []
+    private var dragZoneText = [UInt8]()
+    fileprivate func dragZoneFragment(_ frag: VTermStringFragment) {
+        if frag.initial { dragZoneText.removeAll() }
+        if let str = frag.str, frag.len > 0 {
+            str.withMemoryRebound(to: UInt8.self, capacity: Int(frag.len)) {
+                dragZoneText.append(contentsOf: UnsafeBufferPointer(start: $0, count: Int(frag.len)))
+            }
+        }
+        guard frag.final else { return }
+        dragZones = String(decoding: dragZoneText, as: UTF8.self).split(separator: ";").compactMap { zone in
+            let n = zone.split(separator: ",").compactMap { Int($0) }
+            guard n.count == 4, n[2] > 0, n[3] > 0 else { return nil }
+            return (n[0], n[1], n[2], n[3])
+        }
+        dragZoneText.removeAll()
     }
 
     private func mouseButton(_ p: VTermPos, _ e: NSEvent, _ button: Int32, _ pressed: Bool) {
@@ -816,7 +844,7 @@ final class TermView: NSView, NSTextInputClient {
         let p = cellAt(e)
         selAnchor = p
         if mouseToProgram(e) {
-            if dragsToProgram(e) {
+            if dragsToProgram(p, e) {
                 dragToProgram = true
                 return mouseButton(p, e, 1, true)
             }
