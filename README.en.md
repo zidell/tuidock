@@ -141,7 +141,7 @@ With `--terminal builtin` ("Built-in" in the GUI) the app owns its window and ru
 
 - No Terminal.app or iTerm2 is started, and no control permission is asked.
 - Box-drawing characters (`│ ─ ┼ ╭ █` …) are drawn as shapes filling the cell instead of font glyphs, so lines stay joined at line height 1.5 (in Terminal.app they break into dashes).
-- The window, menu bar and Cmd shortcuts are the app's own: `Cmd+C`/`Cmd+V` copy and paste (drag to select), `Cmd +`/`Cmd -`/`Cmd 0` change the font size, `Cmd+W` and the close button hide the window, `Cmd+Q` quits. A [connected](#connecting-your-program) program gets the same Cmd shortcuts as with a terminal.
+- The window, menu bar and Cmd shortcuts are the app's own: `Cmd+C`/`Cmd+V` copy and paste (drag to select; hold Shift or Option when the program uses mouse drags), `Cmd +`/`Cmd -`/`Cmd 0` change the font size, `Cmd+W` and the close button hide the window, `Cmd+Q` quits. A [connected](#connecting-your-program) program gets the same Cmd shortcuts as with a terminal.
 - The program starts through your login shell (same PATH as a Terminal window). If it ends with an error, the message stays in the window until you press a key.
 - The default font is [D2Coding](https://github.com/naver/d2codingfont) (NAVER, SIL Open Font License 1.1, `Resources/fonts/OFL.txt` in the app), bundled in the app. Only that app uses it; nothing is installed system-wide.
 - Colors: the default text and background follow light/dark mode, and the 16 colors match Terminal.app's "Basic". By default the program's colors are drawn as they are; raising "Contrast" in the settings makes text brighter (dark mode), lowering it fades it.

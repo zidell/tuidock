@@ -141,7 +141,7 @@ tuidock install "dist/Calendar TUI.app"     # /Applications에 넣고 Dock에 �
 
 - Terminal.app·아이텀을 띄우지 않는다. 제어 권한도 묻지 않는다.
 - 박스 그리기 문자(`│ ─ ┼ ╭ █` …)를 글꼴 대신 칸을 꽉 채우는 도형으로 그린다. 줄간격을 1.5로 벌려도 선이 이어진다(Terminal.app은 점선처럼 끊긴다).
-- 창·메뉴 막대·Cmd 단축키가 그 앱 것이다. `Cmd+C`·`Cmd+V`는 복사·붙여넣기(끌어서 선택), `Cmd +`·`Cmd -`·`Cmd 0`은 글꼴 크기, `Cmd+W`·닫기 단추는 가리기, `Cmd+Q`는 종료다. [연결](#프로그램-쪽-연결)된 프로그램은 터미널 방식과 같은 Cmd 조합을 받는다.
+- 창·메뉴 막대·Cmd 단축키가 그 앱 것이다. `Cmd+C`·`Cmd+V`는 복사·붙여넣기(끌어서 선택. 끌기를 받는 프로그램에선 Shift나 Option을 누른 채 끈다), `Cmd +`·`Cmd -`·`Cmd 0`은 글꼴 크기, `Cmd+W`·닫기 단추는 가리기, `Cmd+Q`는 종료다. [연결](#프로그램-쪽-연결)된 프로그램은 터미널 방식과 같은 Cmd 조합을 받는다.
 - 프로그램은 로그인 셸을 거쳐 실행한다(Terminal 창과 같은 PATH). 오류로 끝나면 창에 메시지가 남고 아무 키나 누르면 닫힌다.
 - 기본 글꼴은 앱에 함께 넣는 [D2Coding](https://github.com/naver/d2codingfont)(네이버, SIL Open Font License 1.1, 앱 안 `Resources/fonts/OFL.txt`)이다. 그 앱에서만 쓰고 시스템에 설치하지 않는다.
 - 색: 기본 글자·배경은 시스템 라이트·다크 모드를 따르고, 16색은 Terminal.app "Basic"과 같다. 기본은 프로그램 색 그대로이고, 설정 창의 "대비"를 올리면 글자가 밝아지고(다크) 내리면 흐려진다.

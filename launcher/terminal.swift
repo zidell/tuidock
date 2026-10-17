@@ -769,12 +769,16 @@ final class TermView: NSView, NSTextInputClient {
     // 프로그램이 마우스를 켰으면 누름·놓음을 넘긴다(Shift를 누르면 넘기지 않고 선택).
     // Shift를 누른 클릭도 넘긴다(목록 범위 선택 등). 화면 선택은 끌기로 하므로 Shift+끌기도 그대로 선택이 된다.
     private func mouseToProgram(_ e: NSEvent) -> Bool { mouseMode != Int32(VTERM_PROP_MOUSE_NONE) }
-    // 누름은 놓을 때까지 미룬다: 다른 칸으로 끌면 화면 선택이 되므로, 누르는 순간 동작하는 프로그램(calendar-tui는 누름에 일정을 연다)이
-    // 선택을 시작한 칸을 누른 것으로 받지 않게. 같은 칸에서 놓으면 누름·놓음을 함께 보낸다. Option을 누른 채 누르면 바로 넘기고
-    // 끌기도 넘긴다(끌기를 쓰는 프로그램용).
+    // 끌기 보고를 켠 프로그램(모드 1002·1003, Bubble Tea의 CellMotion 등)엔 누름·끌기·놓음을 바로 넘긴다(사이드바 경계 끌기 등).
+    // 화면 선택은 Shift나 Option을 누른 채 끈다(다른 터미널과 같은 관례).
+    // 그 밖엔 누름을 놓을 때까지 미룬다: 다른 칸으로 끌면 화면 선택이 되므로, 누르는 순간 동작하는 프로그램이 선택을 시작한 칸을
+    // 누른 것으로 받지 않게. 같은 칸에서 놓으면 누름·놓음을 함께 보낸다.
     private var pendingPress: VTermPos? // 프로그램에 보낼 누름(아직 안 보냄)
     private var pendingMods = VTERM_MOD_NONE // 그 누름 때의 수식키(놓기 전에 키를 떼도 누를 때 것으로 보낸다)
-    private var dragToProgram = false   // Option 누름: 누름·끌기·놓음을 바로 넘기는 중
+    private var dragToProgram = false   // 누름·끌기·놓음을 바로 넘기는 중
+    private func dragsToProgram(_ e: NSEvent) -> Bool {
+        mouseMode >= Int32(VTERM_PROP_MOUSE_DRAG) && e.modifierFlags.isDisjoint(with: [.shift, .option])
+    }
 
     private func mouseButton(_ p: VTermPos, _ e: NSEvent, _ button: Int32, _ pressed: Bool) {
         mouseButton(p, mouseMods(e.modifierFlags), button, pressed)
@@ -812,7 +816,7 @@ final class TermView: NSView, NSTextInputClient {
         let p = cellAt(e)
         selAnchor = p
         if mouseToProgram(e) {
-            if e.modifierFlags.contains(.option) {
+            if dragsToProgram(e) {
                 dragToProgram = true
                 return mouseButton(p, e, 1, true)
             }
@@ -823,7 +827,7 @@ final class TermView: NSView, NSTextInputClient {
         selHead = p
     }
 
-    // 누른 채 다른 칸으로 끌면 화면 선택으로 바꾼다(Terminal.app처럼 마우스를 쓰는 TUI에서도 끌어서 복사).
+    // 미룬 누름을 다른 칸으로 끌면 화면 선택으로 바꾼다(마우스를 쓰는 TUI에서도 끌어서 복사).
     override func mouseDragged(with e: NSEvent) {
         let p = cellAt(e)
         if dragToProgram { return vterm_mouse_move(vt, p.row, p.col, mouseMods(e.modifierFlags)) }
