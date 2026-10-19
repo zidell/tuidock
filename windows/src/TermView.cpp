@@ -185,7 +185,10 @@ struct TerminalCallbacks {
                 t->m_markedAt = t->m_cursor;
             break;
         case VTERM_PROP_CURSORSHAPE: t->m_cursorShape = val->number; break;
-        case VTERM_PROP_ALTSCREEN: t->m_altScreen = val->boolean; break;
+        case VTERM_PROP_ALTSCREEN:
+            t->m_altScreen = val->boolean;
+            if (!t->m_altScreen) t->m_dragZones.clear();
+            break;
         case VTERM_PROP_MOUSE: t->m_mouseMode = val->number; break;
         default: break;
         }
@@ -201,6 +204,24 @@ struct TerminalCallbacks {
     static int sbclear(void *) { return 1; }
     static int osc(int command, VTermStringFragment frag, void *u)
     {
+        if (command == 7790) {
+            TermView *t = w(u);
+            if (frag.initial) t->m_dragZoneBuf.clear();
+            t->m_dragZoneBuf.append(frag.str, int(frag.len));
+            if (frag.final) {
+                t->m_dragZones.clear();
+                for (const QByteArray &zone : t->m_dragZoneBuf.split(';')) {
+                    const auto n = zone.split(',');
+                    if (n.size() != 4) continue;
+                    bool valid[4];
+                    const int x = n[0].toInt(&valid[0]), y = n[1].toInt(&valid[1]);
+                    const int width = n[2].toInt(&valid[2]), height = n[3].toInt(&valid[3]);
+                    if (valid[0] && valid[1] && valid[2] && valid[3] && x >= 0 && y >= 0 && width > 0 && height > 0)
+                        t->m_dragZones.append(QRect(x, y, width, height));
+                }
+            }
+            return 1;
+        }
         if ((command == 10 || command == 11) && frag.initial && frag.final && frag.len == 1 && frag.str[0] == '?') {
             const QColor c = command == 10 ? w(u)->m_fg : w(u)->m_bg;
             w(u)->m_outBuf += QStringLiteral("\x1b]%1;rgb:%2/%3/%4\x1b\\")
@@ -775,7 +796,10 @@ void TermView::mousePressEvent(QMouseEvent *e)
     const int button = e->button() == Qt::RightButton ? 3 : e->button() == Qt::MiddleButton ? 2 : 1;
     if (m_mouseMode != VTERM_PROP_MOUSE_NONE && !(button == 3 && (e->modifiers() & Qt::ShiftModifier))) {
         const QPoint c = cellFromPos(e->position().toPoint());
-        if (button == 1 && !(e->modifiers() & Qt::AltModifier)) {
+        const bool programDrag = m_mouseMode >= VTERM_PROP_MOUSE_DRAG
+            && !(e->modifiers() & Qt::ShiftModifier)
+            && std::any_of(m_dragZones.cbegin(), m_dragZones.cend(), [&](const QRect &r) { return r.contains(c); });
+        if (button == 1 && !(e->modifiers() & Qt::AltModifier) && !programDrag) {
             m_pendingPress = true;
             m_pressCell = c;
             m_pressMods = mouseMods(e->modifiers());

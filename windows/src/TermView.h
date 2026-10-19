@@ -3,6 +3,7 @@
 #include <QFont>
 #include <QHash>
 #include <QWidget>
+#include <QRect>
 #include "Config.h"
 extern "C" {
 #include <vterm.h>
@@ -90,6 +91,8 @@ private:
     bool m_selecting = false, m_pendingPress = false;
     QPoint m_pressCell;
     int m_pressMods = 0, m_buttonToProgram = 0;
+    QList<QRect> m_dragZones;
+    QByteArray m_dragZoneBuf;
     QByteArray m_outBuf, m_utf8Carry;
     QByteArray m_csi;
     Style m_style;

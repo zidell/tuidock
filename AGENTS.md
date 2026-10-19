@@ -4,6 +4,11 @@
 
 ## 구조
 
+Windows 자체 터미널도 macOS와 같은 OSC 7790 끌기 영역을 처리한다. 영역 안에서 시작한 드래그는 프로그램에
+누름·이동·놓음을 보내고, 영역 밖과 Shift 드래그는 화면 글자를 선택한다. OSC가 출력 청크 사이에서 나뉘는
+경우와 빈 선언으로 영역을 지우는 경우도 검사한다(`announcedDragZonesReachProgram`). Gifiles의
+`programTakesDrag`와 같은 영역 규약을 쓰며, 기존 Alt 드래그 전달도 유지한다.
+
 | 파일 | 역할 |
 |---|---|
 | `app/TUIDockApp.swift` | GUI 생성기 TUIDock.app(SwiftUI, 창 하나). 만들기는 번들 안 `tuidock`을 부른다 |

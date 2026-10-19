@@ -155,6 +155,33 @@ private slots:
         QTest::keyClick(&term, Qt::Key_Q);
         QTRY_VERIFY(!term.isRunning());
     }
+    void announcedDragZonesReachProgram() {
+        TermView term; term.resize(800, 300); term.show(); term.setFocus();
+        QVERIFY(term.start(fixture(), {QStringLiteral("input")}));
+        QTRY_VERIFY_WITH_TIMEOUT(term.screenText().contains(QStringLiteral("READY")), 10000);
+        term.feedOutput("\x1b[?1002h\x1b[?1006h\x1b]7790;0,0,");
+        term.feedOutput("5,2\x07"); // OSC가 출력 청크 사이에서 갈려도 처리한다.
+        const QPoint first(7, 7), last(25, 7);
+        QTest::mousePress(&term, Qt::LeftButton, Qt::NoModifier, first);
+        QTest::mouseMove(&term, last);
+        QTest::mouseRelease(&term, Qt::LeftButton, Qt::NoModifier, last);
+        QTRY_VERIFY(term.screenText().contains(QStringLiteral("1b5b3c303b313b314d"))); // press
+        QTRY_VERIFY(term.screenText().contains(QStringLiteral("3b316d"))); // release
+        ClipboardGuard clipboard;
+        term.feedOutput("\x1b[2J\x1b[HSELECT");
+        QTest::mousePress(&term, Qt::LeftButton, Qt::ShiftModifier, first);
+        QTest::mouseRelease(&term, Qt::LeftButton, Qt::ShiftModifier, QPoint(75, 7));
+        QTest::keyClick(&term, Qt::Key_C, Qt::ControlModifier);
+        QVERIFY(QGuiApplication::clipboard()->text().startsWith(QStringLiteral("SELECT")));
+        // 빈 영역 선언 후에는 같은 끌기가 프로그램 누름 없이 화면 선택이 된다.
+        term.feedOutput("\x1b[2J\x1b[HSELECT\x1b]7790;\x07");
+        QTest::mousePress(&term, Qt::LeftButton, Qt::NoModifier, first);
+        QTest::mouseRelease(&term, Qt::LeftButton, Qt::NoModifier, QPoint(75, 7));
+        QTest::keyClick(&term, Qt::Key_C, Qt::ControlModifier);
+        QVERIFY(QGuiApplication::clipboard()->text().startsWith(QStringLiteral("SELECT")));
+        QTest::keyClick(&term, Qt::Key_Q);
+        QTRY_VERIFY(!term.isRunning());
+    }
     void vtProbe() {
         Pty p; QByteArray received;
         connect(&p, &Pty::dataReceived, this, [&](const QByteArray &data) { received += data; });
