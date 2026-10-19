@@ -187,6 +187,7 @@ private slots:
         connect(&p, &Pty::dataReceived, this, [&](const QByteArray &data) { received += data; });
         QVERIFY(p.start(fixture(), {QStringLiteral("probe")}, {}, 120, 30));
         QTRY_VERIFY_WITH_TIMEOUT(received.contains("READY"), 10000);
+        QVERIFY2(received.contains("\x1b]7790;1,2,3,4"), received.toHex().constData());
         qInfo("ConPTY output: OSC10=%d OSC11=%d mode2031=%d query996=%d SGRmouse=%d",
               received.contains("\x1b]10;?"), received.contains("\x1b]11;?"), received.contains("\x1b[?2031h"),
               received.contains("\x1b[?996n"), received.contains("\x1b[?1006h"));

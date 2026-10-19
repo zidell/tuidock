@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         output("FINAL-MARKER\r\n");
         return 0;
     }
-    if (mode == QStringLiteral("probe")) output("\x1b]10;?\x1b\\\x1b]11;?\x1b\\\x1b[?2031h\x1b[?996n\x1b[?1000h\x1b[?1006h\r\nREADY\r\n");
+    if (mode == QStringLiteral("probe")) output("\x1b]10;?\x1b\\\x1b]11;?\x1b\\\x1b[?2031h\x1b[?996n\x1b[?1000h\x1b[?1006h\x1b]7790;1,2,3,4\x07\r\nREADY\r\n");
     else output("\x1b[?1049h\x1b[2J\x1b[HREADY\r\n");
     wchar_t buf[512]; DWORD n = 0; QByteArray history; QString pending;
     for (;;) {
